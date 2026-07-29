@@ -63,17 +63,12 @@ resource "authentik_property_mapping_provider_scope" "roles" {
 # Authentik Outpost
 # https://registry.terraform.io/providers/goauthentik/authentik/latest/docs/resources/outpost
 
-resource "authentik_outpost" "gateway" {
-  name               = var.outpost_name
+# The embedded outpost ships with Authentik and runs inside the authentik-server pods, so it
+# needs no service connection or managed Kubernetes deployment. Consumers import it (an import
+# block in the root module, keyed on its name) so this resource assigns the proxy provider to
+# it, which makes each regional authentik-server serve forward-auth locally for Istio.
+resource "authentik_outpost" "embedded" {
+  name               = local.embedded_outpost_name
   protocol_providers = [authentik_provider_proxy.gateway.id]
-  service_connection = data.authentik_service_connection_kubernetes.local.id
   type               = "proxy"
-
-  config = jsonencode({
-    authentik_host          = var.authentik_url
-    authentik_host_insecure = false
-    kubernetes_namespace    = var.namespace
-    kubernetes_service_type = "ClusterIP"
-    object_naming_template  = "ak-outpost-%(name)s"
-  })
 }

@@ -9,6 +9,12 @@ mock_provider "helm" {}
 mock_provider "authentik" {
   # Authentik provider primary keys are numeric; the proxy and OAuth2 provider IDs are
   # referenced as numbers by the application and outpost resources.
+  mock_resource "authentik_outpost" {
+    defaults = {
+      id = "00000000-0000-0000-0000-000000000000"
+    }
+  }
+
   mock_resource "authentik_provider_oauth2" {
     defaults = {
       id = 1

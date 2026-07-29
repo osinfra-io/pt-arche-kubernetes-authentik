@@ -30,10 +30,3 @@ data "authentik_property_mapping_provider_scope" "openid" {
 data "authentik_property_mapping_provider_scope" "profile" {
   managed = "goauthentik.io/providers/oauth2/scope-profile"
 }
-
-# Authentik Service Connection Kubernetes Data Source
-# https://registry.terraform.io/providers/goauthentik/authentik/latest/docs/data-sources/service_connection_kubernetes
-
-data "authentik_service_connection_kubernetes" "local" {
-  name = "Local Kubernetes Cluster"
-}

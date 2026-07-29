@@ -42,13 +42,7 @@ variable "invalidation_flow_slug" {
 }
 
 variable "namespace" {
-  description = "The Kubernetes namespace the managed proxy outpost is deployed into"
-  type        = string
-}
-
-variable "outpost_name" {
-  default     = "gateway"
-  description = "The name of the managed Kubernetes proxy outpost that serves Istio ext_authz forward-auth"
+  description = "The Kubernetes namespace the authentik-server is deployed into, which serves the embedded outpost"
   type        = string
 }
 
