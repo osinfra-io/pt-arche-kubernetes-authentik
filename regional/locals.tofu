@@ -65,11 +65,16 @@ locals {
       # Workload Identity token request reaches gke-metadata-server directly; if Envoy proxies it the
       # server returns the node identity instead of the pod's, breaking IAM auth to Cloud SQL.
       # https://cloud.google.com/service-mesh/docs/security/workload-identity
+      # Exclude port 3307 (the Cloud SQL Auth Proxy's upstream port to the instance) so the proxy's
+      # own mTLS tunnel to Cloud SQL bypasses Envoy; otherwise the mesh's STRICT mTLS posture resets
+      # the connection and the loopback client sees "server closed the connection unexpectedly".
+      # https://cloud.google.com/sql/docs/postgres/connect-auth-proxy#firewall
       podAnnotations = {
         "proxy.istio.io/config" = jsonencode({
           holdApplicationUntilProxyStarts = true
         })
         "traffic.sidecar.istio.io/excludeOutboundIPRanges" = "169.254.169.254/32"
+        "traffic.sidecar.istio.io/excludeOutboundPorts"    = "3307"
       }
     }
 
