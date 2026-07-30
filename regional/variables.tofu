@@ -13,13 +13,19 @@ variable "chart_repository" {
   type        = string
 }
 
-variable "existing_secret" {
-  description = "Name of an existing Kubernetes Secret providing the Authentik environment (AUTHENTIK_SECRET_KEY, AUTHENTIK_POSTGRESQL__PASSWORD, AUTHENTIK_BOOTSTRAP_TOKEN, AUTHENTIK_BOOTSTRAP_PASSWORD). Mounted into the server and worker via envFrom so no secrets are stored in the Helm release."
+variable "cloud_sql_connection_name" {
+  description = "Connection name (project:region:instance) of the Cloud SQL instance the Auth Proxy sidecar dials. Authentik connects to the proxy over the pod loopback, so the private-IP instance is reachable without exposing the database on the mesh."
   type        = string
 }
 
-variable "external_database_host" {
-  description = "The host of the external PostgreSQL database (Cloud SQL private IP)"
+variable "cloud_sql_proxy_image" {
+  default     = "gcr.io/cloud-sql-connectors/cloud-sql-proxy:2.24.1"
+  description = "The Cloud SQL Auth Proxy image run as a sidecar in the server and worker pods"
+  type        = string
+}
+
+variable "existing_secret" {
+  description = "Name of an existing Kubernetes Secret providing the Authentik environment (AUTHENTIK_SECRET_KEY, AUTHENTIK_POSTGRESQL__PASSWORD, AUTHENTIK_BOOTSTRAP_TOKEN, AUTHENTIK_BOOTSTRAP_PASSWORD). Mounted into the server and worker via envFrom so no secrets are stored in the Helm release."
   type        = string
 }
 
@@ -38,6 +44,11 @@ variable "external_database_port" {
 variable "external_database_user" {
   default     = "authentik"
   description = "The user for the external PostgreSQL database"
+  type        = string
+}
+
+variable "google_service_account_email" {
+  description = "Email of the Google service account the Cloud SQL Auth Proxy sidecar impersonates via Workload Identity (annotated onto the chart's ServiceAccount). It must hold roles/cloudsql.client on the instance's project."
   type        = string
 }
 

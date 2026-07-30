@@ -18,7 +18,8 @@ terraform {
 module "test" {
   source = "../../../../regional"
 
-  existing_secret        = "authentik"
-  external_database_host = "10.0.0.3"
-  namespace              = "authentik"
+  cloud_sql_connection_name    = "test-project:us-east1:authentik-abc123-us-east1"
+  existing_secret              = "authentik"
+  google_service_account_email = "authentik-cloud-sql@test-project.iam.gserviceaccount.com"
+  namespace                    = "authentik"
 }

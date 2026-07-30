@@ -5,14 +5,47 @@
 # embedded outpost store, and WebSocket connections in PostgreSQL, so no Redis is deployed.
 # https://docs.goauthentik.io/install-config/high-availability
 
+# The Cloud SQL Auth Proxy runs as a sidecar in every server and worker pod and authenticates to
+# Cloud SQL via Workload Identity, so Authentik reaches the private-IP, ENCRYPTED_ONLY instance over
+# the pod loopback without the database being exposed on the mesh.
+# https://cloud.google.com/sql/docs/postgres/connect-auth-proxy
+
 locals {
+  cloud_sql_proxy_container = {
+    name  = "cloud-sql-proxy"
+    image = var.cloud_sql_proxy_image
+
+    args = [
+      "--private-ip",
+      "--structured-logs",
+      "--port=${var.external_database_port}",
+      var.cloud_sql_connection_name,
+    ]
+
+    resources = {
+      limits = {
+        memory = "128Mi"
+      }
+
+      requests = {
+        cpu    = "50m"
+        memory = "64Mi"
+      }
+    }
+
+    securityContext = {
+      runAsNonRoot = true
+    }
+  }
+
   helm_values = yamlencode({
     authentik = {
       postgresql = {
-        host = var.external_database_host
-        name = var.external_database_name
-        port = var.external_database_port
-        user = var.external_database_user
+        host    = "127.0.0.1"
+        name    = var.external_database_name
+        port    = var.external_database_port
+        sslmode = "disable"
+        user    = var.external_database_user
       }
     }
 
@@ -40,6 +73,8 @@ locals {
     }
 
     server = {
+      extraContainers = [local.cloud_sql_proxy_container]
+
       replicas = var.server_replicas
 
       resources = {
@@ -54,7 +89,15 @@ locals {
       }
     }
 
+    serviceAccount = {
+      annotations = {
+        "iam.gke.io/gcp-service-account" = var.google_service_account_email
+      }
+    }
+
     worker = {
+      extraContainers = [local.cloud_sql_proxy_container]
+
       replicas = var.worker_replicas
 
       resources = {
