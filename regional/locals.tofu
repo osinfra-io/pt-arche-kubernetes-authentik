@@ -61,10 +61,15 @@ locals {
       # When the namespace is mesh-injected under STRICT mTLS, hold the server and worker containers
       # until the Istio sidecar is ready so startup database connectivity is not attempted before the
       # proxy can carry it. https://istio.io/latest/docs/reference/config/istio.mesh.v1alpha1/#ProxyConfig
+      # Exclude the GKE metadata server from sidecar interception so the Cloud SQL Auth Proxy's
+      # Workload Identity token request reaches gke-metadata-server directly; if Envoy proxies it the
+      # server returns the node identity instead of the pod's, breaking IAM auth to Cloud SQL.
+      # https://cloud.google.com/service-mesh/docs/security/workload-identity
       podAnnotations = {
         "proxy.istio.io/config" = jsonencode({
           holdApplicationUntilProxyStarts = true
         })
+        "traffic.sidecar.istio.io/excludeOutboundIPRanges" = "169.254.169.254/32"
       }
     }
 
