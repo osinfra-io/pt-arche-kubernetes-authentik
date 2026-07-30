@@ -41,6 +41,12 @@ variable "external_database_user" {
   type        = string
 }
 
+variable "helm_timeout" {
+  default     = 900
+  description = "Seconds to wait for the Authentik Helm release to become ready. The default exceeds the Helm provider's 300s because Authentik's first boot runs database migrations and blueprint bootstrapping, which can take several minutes under STRICT mTLS sidecar startup"
+  type        = number
+}
+
 variable "namespace" {
   description = "The Kubernetes namespace to deploy Authentik into"
   type        = string

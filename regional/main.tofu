@@ -7,6 +7,8 @@ resource "helm_release" "authentik" {
   namespace  = var.namespace
   repository = var.chart_repository
 
+  timeout = var.helm_timeout
+
   values = [
     local.helm_values
   ]
