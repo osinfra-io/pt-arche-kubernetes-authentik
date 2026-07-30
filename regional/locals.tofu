@@ -24,6 +24,15 @@ locals {
           }
         }
       ]
+
+      # When the namespace is mesh-injected under STRICT mTLS, hold the server and worker containers
+      # until the Istio sidecar is ready so startup database connectivity is not attempted before the
+      # proxy can carry it. https://istio.io/latest/docs/reference/config/istio.mesh.v1alpha1/#ProxyConfig
+      podAnnotations = {
+        "proxy.istio.io/config" = jsonencode({
+          holdApplicationUntilProxyStarts = true
+        })
+      }
     }
 
     postgresql = {
