@@ -11,6 +11,12 @@
 # https://cloud.google.com/sql/docs/postgres/connect-auth-proxy
 
 locals {
+  # The chart creates and annotates this service account (via serviceAccount.fullnameOverride), but
+  # the server and worker pods only adopt it when server.serviceAccountName and
+  # worker.serviceAccountName are set; otherwise they fall back to the default service account, whose
+  # missing Workload Identity annotation makes the Cloud SQL Auth Proxy authenticate as the node.
+  service_account_name = "authentik"
+
   cloud_sql_proxy_container = {
     name  = "cloud-sql-proxy"
     image = var.cloud_sql_proxy_image
@@ -61,20 +67,10 @@ locals {
       # When the namespace is mesh-injected under STRICT mTLS, hold the server and worker containers
       # until the Istio sidecar is ready so startup database connectivity is not attempted before the
       # proxy can carry it. https://istio.io/latest/docs/reference/config/istio.mesh.v1alpha1/#ProxyConfig
-      # Exclude the GKE metadata server from sidecar interception so the Cloud SQL Auth Proxy's
-      # Workload Identity token request reaches gke-metadata-server directly; if Envoy proxies it the
-      # server returns the node identity instead of the pod's, breaking IAM auth to Cloud SQL.
-      # https://cloud.google.com/service-mesh/docs/security/workload-identity
-      # Exclude port 3307 (the Cloud SQL Auth Proxy's upstream port to the instance) so the proxy's
-      # own mTLS tunnel to Cloud SQL bypasses Envoy; otherwise the mesh's STRICT mTLS posture resets
-      # the connection and the loopback client sees "server closed the connection unexpectedly".
-      # https://cloud.google.com/sql/docs/postgres/connect-auth-proxy#firewall
       podAnnotations = {
         "proxy.istio.io/config" = jsonencode({
           holdApplicationUntilProxyStarts = true
         })
-        "traffic.sidecar.istio.io/excludeOutboundIPRanges" = "169.254.169.254/32"
-        "traffic.sidecar.istio.io/excludeOutboundPorts"    = "3307"
       }
     }
 
@@ -97,6 +93,8 @@ locals {
           memory = var.server_resources_requests_memory
         }
       }
+
+      serviceAccountName = local.service_account_name
     }
 
     serviceAccount = {
