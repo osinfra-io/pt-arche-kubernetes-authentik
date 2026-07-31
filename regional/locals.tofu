@@ -11,8 +11,9 @@
 # https://cloud.google.com/sql/docs/postgres/connect-auth-proxy
 
 locals {
-  # The chart creates and annotates this service account (via serviceAccount.fullnameOverride), but
-  # the server and worker pods only adopt it when server.serviceAccountName and
+  # The chart creates and annotates a service account whose name comes from the authentik.fullname
+  # template, which resolves to "authentik" because the Helm release name matches the chart name.
+  # The server and worker pods only adopt it when server.serviceAccountName and
   # worker.serviceAccountName are set; otherwise they fall back to the default service account, whose
   # missing Workload Identity annotation makes the Cloud SQL Auth Proxy authenticate as the node.
   service_account_name = "authentik"
@@ -118,6 +119,8 @@ locals {
           memory = var.worker_resources_requests_memory
         }
       }
+
+      serviceAccountName = local.service_account_name
     }
   })
 }

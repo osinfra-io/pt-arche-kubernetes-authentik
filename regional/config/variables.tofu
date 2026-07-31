@@ -16,6 +16,11 @@ variable "application_slug" {
 variable "authentik_url" {
   description = "The public base URL of the Authentik deployment, used to construct the OIDC issuer and JWKS URLs"
   type        = string
+
+  validation {
+    condition     = startswith(var.authentik_url, "https://")
+    error_message = "The authentik_url must be a public HTTPS URL (starting with https://)."
+  }
 }
 
 variable "authorization_flow_slug" {
@@ -33,6 +38,11 @@ variable "client_id" {
 variable "external_host" {
   description = "The public URL of the protected gateway, used as the proxy provider external host"
   type        = string
+
+  validation {
+    condition     = startswith(var.external_host, "https://")
+    error_message = "The external_host must be a public HTTPS URL (starting with https://)."
+  }
 }
 
 variable "invalidation_flow_slug" {
