@@ -23,14 +23,15 @@ if [ -z "${authentik_token}" ]; then
 fi
 
 elapsed_seconds=0
+readonly AUTHENTIK_AUTH_HEADER="Authorization: Bearer ${authentik_token}"
 
 check_ready() {
   curl --connect-timeout "${CURL_CONNECT_TIMEOUT}" --max-time "${CURL_MAX_TIME}" --fail --insecure --silent --show-error "${API_BASE_URL}/-/health/live/" >/dev/null &&
-    curl --connect-timeout "${CURL_CONNECT_TIMEOUT}" --max-time "${CURL_MAX_TIME}" --fail --insecure --silent --show-error -H "Authorization: ******" "${API_BASE_URL}/api/v3/flows/instances/?slug=${AUTHORIZATION_FLOW_SLUG}" | grep -F "\"${AUTHORIZATION_FLOW_SLUG}\"" >/dev/null &&
-    curl --connect-timeout "${CURL_CONNECT_TIMEOUT}" --max-time "${CURL_MAX_TIME}" --fail --insecure --silent --show-error -H "Authorization: ******" "${API_BASE_URL}/api/v3/flows/instances/?slug=${INVALIDATION_FLOW_SLUG}" | grep -F "\"${INVALIDATION_FLOW_SLUG}\"" >/dev/null &&
-    curl --connect-timeout "${CURL_CONNECT_TIMEOUT}" --max-time "${CURL_MAX_TIME}" --fail --insecure --silent --show-error -H "Authorization: ******" "${API_BASE_URL}/api/v3/propertymappings/provider/scope/?managed=goauthentik.io%2Fproviders%2Foauth2%2Fscope-email" | grep -F "goauthentik.io/providers/oauth2/scope-email" >/dev/null &&
-    curl --connect-timeout "${CURL_CONNECT_TIMEOUT}" --max-time "${CURL_MAX_TIME}" --fail --insecure --silent --show-error -H "Authorization: ******" "${API_BASE_URL}/api/v3/propertymappings/provider/scope/?managed=goauthentik.io%2Fproviders%2Foauth2%2Fscope-openid" | grep -F "goauthentik.io/providers/oauth2/scope-openid" >/dev/null &&
-    curl --connect-timeout "${CURL_CONNECT_TIMEOUT}" --max-time "${CURL_MAX_TIME}" --fail --insecure --silent --show-error -H "Authorization: ******" "${API_BASE_URL}/api/v3/propertymappings/provider/scope/?managed=goauthentik.io%2Fproviders%2Foauth2%2Fscope-profile" | grep -F "goauthentik.io/providers/oauth2/scope-profile" >/dev/null
+    curl --connect-timeout "${CURL_CONNECT_TIMEOUT}" --max-time "${CURL_MAX_TIME}" --fail --insecure --silent --show-error -H "${AUTHENTIK_AUTH_HEADER}" "${API_BASE_URL}/api/v3/flows/instances/?slug=${AUTHORIZATION_FLOW_SLUG}" | grep -F "\"${AUTHORIZATION_FLOW_SLUG}\"" >/dev/null &&
+    curl --connect-timeout "${CURL_CONNECT_TIMEOUT}" --max-time "${CURL_MAX_TIME}" --fail --insecure --silent --show-error -H "${AUTHENTIK_AUTH_HEADER}" "${API_BASE_URL}/api/v3/flows/instances/?slug=${INVALIDATION_FLOW_SLUG}" | grep -F "\"${INVALIDATION_FLOW_SLUG}\"" >/dev/null &&
+    curl --connect-timeout "${CURL_CONNECT_TIMEOUT}" --max-time "${CURL_MAX_TIME}" --fail --insecure --silent --show-error -H "${AUTHENTIK_AUTH_HEADER}" "${API_BASE_URL}/api/v3/propertymappings/provider/scope/?managed=goauthentik.io%2Fproviders%2Foauth2%2Fscope-email" | grep -F "goauthentik.io/providers/oauth2/scope-email" >/dev/null &&
+    curl --connect-timeout "${CURL_CONNECT_TIMEOUT}" --max-time "${CURL_MAX_TIME}" --fail --insecure --silent --show-error -H "${AUTHENTIK_AUTH_HEADER}" "${API_BASE_URL}/api/v3/propertymappings/provider/scope/?managed=goauthentik.io%2Fproviders%2Foauth2%2Fscope-openid" | grep -F "goauthentik.io/providers/oauth2/scope-openid" >/dev/null &&
+    curl --connect-timeout "${CURL_CONNECT_TIMEOUT}" --max-time "${CURL_MAX_TIME}" --fail --insecure --silent --show-error -H "${AUTHENTIK_AUTH_HEADER}" "${API_BASE_URL}/api/v3/propertymappings/provider/scope/?managed=goauthentik.io%2Fproviders%2Foauth2%2Fscope-profile" | grep -F "goauthentik.io/providers/oauth2/scope-profile" >/dev/null
 }
 
 until check_ready; do
@@ -50,7 +51,7 @@ echo "Authentik bootstrap readiness checks passed at ${API_BASE_URL}"
 readonly TFVARS_FILE="${AUTHENTIK_TFVARS_FILE:-tests/docker/regional/config/terraform.auto.tfvars}"
 embedded_outpost_id="$(
   curl --connect-timeout "${CURL_CONNECT_TIMEOUT}" --max-time "${CURL_MAX_TIME}" --insecure --silent --show-error \
-    -H "Authorization: ******" \
+    -H "${AUTHENTIK_AUTH_HEADER}" \
     "${API_BASE_URL}/api/v3/outposts/instances/?managed=goauthentik.io%2Foutposts%2Fembedded" |
     grep -o '"pk":"[^"]*"' | head -1 | cut -d'"' -f4
 )"
