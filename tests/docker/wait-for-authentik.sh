@@ -7,6 +7,8 @@ readonly AUTHORIZATION_FLOW_SLUG="${AUTHENTIK_AUTHORIZATION_FLOW_SLUG:-default-p
 readonly INVALIDATION_FLOW_SLUG="${AUTHENTIK_INVALIDATION_FLOW_SLUG:-default-provider-invalidation-flow}"
 readonly TIMEOUT_SECONDS="${AUTHENTIK_HEALTHCHECK_TIMEOUT_SECONDS:-300}"
 readonly INTERVAL_SECONDS=5
+readonly CURL_CONNECT_TIMEOUT=10
+readonly CURL_MAX_TIME=30
 
 authentik_token="${AUTHENTIK_BOOTSTRAP_TOKEN:-}"
 if [ -z "${authentik_token}" ] && [ -f "${AUTHENTIK_ENV_FILE:-tests/docker/.env}" ]; then
@@ -23,12 +25,12 @@ fi
 elapsed_seconds=0
 
 check_ready() {
-  curl --fail --insecure --silent --show-error "${API_BASE_URL}/-/health/live/" >/dev/null &&
-    curl --fail --insecure --silent --show-error -H "Authorization: Bearer ${authentik_token}" "${API_BASE_URL}/api/v3/flows/instances/?slug=${AUTHORIZATION_FLOW_SLUG}" | grep -F "\"${AUTHORIZATION_FLOW_SLUG}\"" >/dev/null &&
-    curl --fail --insecure --silent --show-error -H "Authorization: Bearer ${authentik_token}" "${API_BASE_URL}/api/v3/flows/instances/?slug=${INVALIDATION_FLOW_SLUG}" | grep -F "\"${INVALIDATION_FLOW_SLUG}\"" >/dev/null &&
-    curl --fail --insecure --silent --show-error -H "Authorization: Bearer ${authentik_token}" "${API_BASE_URL}/api/v3/propertymappings/provider/scope/?managed=goauthentik.io%2Fproviders%2Foauth2%2Fscope-email" | grep -F "goauthentik.io/providers/oauth2/scope-email" >/dev/null &&
-    curl --fail --insecure --silent --show-error -H "Authorization: Bearer ${authentik_token}" "${API_BASE_URL}/api/v3/propertymappings/provider/scope/?managed=goauthentik.io%2Fproviders%2Foauth2%2Fscope-openid" | grep -F "goauthentik.io/providers/oauth2/scope-openid" >/dev/null &&
-    curl --fail --insecure --silent --show-error -H "Authorization: Bearer ${authentik_token}" "${API_BASE_URL}/api/v3/propertymappings/provider/scope/?managed=goauthentik.io%2Fproviders%2Foauth2%2Fscope-profile" | grep -F "goauthentik.io/providers/oauth2/scope-profile" >/dev/null
+  curl --connect-timeout "${CURL_CONNECT_TIMEOUT}" --max-time "${CURL_MAX_TIME}" --fail --insecure --silent --show-error "${API_BASE_URL}/-/health/live/" >/dev/null &&
+    curl --connect-timeout "${CURL_CONNECT_TIMEOUT}" --max-time "${CURL_MAX_TIME}" --fail --insecure --silent --show-error -H "Authorization: ******" "${API_BASE_URL}/api/v3/flows/instances/?slug=${AUTHORIZATION_FLOW_SLUG}" | grep -F "\"${AUTHORIZATION_FLOW_SLUG}\"" >/dev/null &&
+    curl --connect-timeout "${CURL_CONNECT_TIMEOUT}" --max-time "${CURL_MAX_TIME}" --fail --insecure --silent --show-error -H "Authorization: ******" "${API_BASE_URL}/api/v3/flows/instances/?slug=${INVALIDATION_FLOW_SLUG}" | grep -F "\"${INVALIDATION_FLOW_SLUG}\"" >/dev/null &&
+    curl --connect-timeout "${CURL_CONNECT_TIMEOUT}" --max-time "${CURL_MAX_TIME}" --fail --insecure --silent --show-error -H "Authorization: ******" "${API_BASE_URL}/api/v3/propertymappings/provider/scope/?managed=goauthentik.io%2Fproviders%2Foauth2%2Fscope-email" | grep -F "goauthentik.io/providers/oauth2/scope-email" >/dev/null &&
+    curl --connect-timeout "${CURL_CONNECT_TIMEOUT}" --max-time "${CURL_MAX_TIME}" --fail --insecure --silent --show-error -H "Authorization: ******" "${API_BASE_URL}/api/v3/propertymappings/provider/scope/?managed=goauthentik.io%2Fproviders%2Foauth2%2Fscope-openid" | grep -F "goauthentik.io/providers/oauth2/scope-openid" >/dev/null &&
+    curl --connect-timeout "${CURL_CONNECT_TIMEOUT}" --max-time "${CURL_MAX_TIME}" --fail --insecure --silent --show-error -H "Authorization: ******" "${API_BASE_URL}/api/v3/propertymappings/provider/scope/?managed=goauthentik.io%2Fproviders%2Foauth2%2Fscope-profile" | grep -F "goauthentik.io/providers/oauth2/scope-profile" >/dev/null
 }
 
 until check_ready; do
@@ -47,8 +49,8 @@ echo "Authentik bootstrap readiness checks passed at ${API_BASE_URL}"
 # in tests/docker/regional/config/main.tofu resolves correctly for this instance.
 readonly TFVARS_FILE="${AUTHENTIK_TFVARS_FILE:-tests/docker/regional/config/terraform.auto.tfvars}"
 embedded_outpost_id="$(
-  curl --insecure --silent --show-error \
-    -H "Authorization: Bearer ${authentik_token}" \
+  curl --connect-timeout "${CURL_CONNECT_TIMEOUT}" --max-time "${CURL_MAX_TIME}" --insecure --silent --show-error \
+    -H "Authorization: ******" \
     "${API_BASE_URL}/api/v3/outposts/instances/?managed=goauthentik.io%2Foutposts%2Fembedded" |
     grep -o '"pk":"[^"]*"' | head -1 | cut -d'"' -f4
 )"

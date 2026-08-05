@@ -39,8 +39,8 @@ services:
       AUTHENTIK_SECRET_KEY: ${AUTHENTIK_SECRET_KEY:?secret key required}
     image: ${AUTHENTIK_IMAGE:-ghcr.io/goauthentik/server}:${AUTHENTIK_TAG:-2026.5.6}
     ports:
-      - ${COMPOSE_PORT_HTTP:-9000}:9000
-      - ${COMPOSE_PORT_HTTPS:-9443}:9443
+      - 127.0.0.1:${COMPOSE_PORT_HTTP:-9000}:9000
+      - 127.0.0.1:${COMPOSE_PORT_HTTPS:-9443}:9443
     restart: unless-stopped
     shm_size: 512mb
     volumes:
