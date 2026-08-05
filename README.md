@@ -34,7 +34,7 @@ This module is consumed from a regional workspace via the `//regional` sub-path.
 
 ## 🔍 Tests
 
-All tests are [mocked](https://opentofu.org/docs/cli/commands/test/#the-mock_provider-blocks) allowing us to test the module without creating infrastructure or requiring credentials.
+The default test suite is [mocked](https://opentofu.org/docs/cli/commands/test/#the-mock_provider-blocks), allowing CI-safe validation without infrastructure or credentials.
 
 ```none
 tofu init
@@ -43,6 +43,36 @@ tofu init
 ```none
 tofu test
 ```
+
+You can also run a **Docker integration test** for `regional/config` against a local Authentik instance. Two modes are available depending on whether you want resources to persist for inspection.
+
+**Full cycle** — creates resources, runs assertions, then destroys everything:
+
+```none
+docker compose -f tests/docker/compose.yml up -d
+./tests/docker/wait-for-authentik.sh
+tofu -chdir=tests/docker/regional/config init
+tofu -chdir=tests/docker/regional/config test -filter=regional-config-live.tftest.hcl
+docker compose -f tests/docker/compose.yml down -v
+```
+
+**Apply and inspect** — creates resources and leaves them running for manual inspection:
+
+```none
+docker compose --env-file tests/docker/.env -f tests/docker/compose.yml up -d
+./tests/docker/wait-for-authentik.sh
+tofu -chdir=tests/docker/regional/config init
+tofu -chdir=tests/docker/regional/config apply
+```
+
+When you're done, tear down:
+
+```none
+tofu -chdir=tests/docker/regional/config destroy
+docker compose -f tests/docker/compose.yml down -v
+```
+
+The Docker fixture uses the bootstrap API token from the committed `tests/docker/.env` defaults. The Authentik UI is available at `http://localhost:9000` (login: `akadmin` / `not-a-secret`).
 
 ## 📦 Release
 
