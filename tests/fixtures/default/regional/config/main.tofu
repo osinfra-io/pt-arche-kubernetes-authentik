@@ -19,6 +19,12 @@ module "test" {
   source = "../../../../../regional/config"
 
   authentik_url = "https://authentik.example.com"
+  browser_group_policy_bindings = {
+    "https://gateway.example.com" = {
+      groups = ["platform-engineers", "project-admins"]
+      host   = "https://gateway.example.com"
+    }
+  }
   external_host = "https://gateway.example.com"
   namespace     = "authentik"
 }
