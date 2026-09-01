@@ -28,3 +28,8 @@ module "test" {
   external_host = "https://gateway.example.com"
   namespace     = "authentik"
 }
+
+output "browser_group_policy_binding_count" {
+  description = "Number of host-scoped browser policy bindings configured in the fixture"
+  value       = length(module.test.browser_group_policy_bindings)
+}

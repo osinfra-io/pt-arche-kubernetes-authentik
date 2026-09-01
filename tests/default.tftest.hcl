@@ -61,4 +61,9 @@ run "default_regional_config" {
   module {
     source = "./tests/fixtures/default/regional/config"
   }
+
+  assert {
+    condition     = output.browser_group_policy_binding_count == 1
+    error_message = "The default browser config should create one host-scoped Authentik browser policy binding."
+  }
 }
