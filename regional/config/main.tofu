@@ -1,3 +1,20 @@
+locals {
+  browser_group_policy_bindings = flatten([
+    for host_key, binding in var.browser_group_policy_bindings : [
+      for group in binding.groups : {
+        group_key = replace(group, "-", "_")
+        host_key  = host_key
+        group     = group
+        host      = binding.host
+      }
+    ]
+  ])
+
+  browser_group_policy_binding_map = {
+    for item in local.browser_group_policy_bindings : "${item.host_key}:${item.group_key}" => item
+  }
+}
+
 # Authentik Application
 # https://registry.terraform.io/providers/goauthentik/authentik/latest/docs/resources/application
 
@@ -5,6 +22,14 @@ resource "authentik_application" "gateway" {
   name              = var.application_name
   protocol_provider = authentik_provider_oauth2.gateway.id
   slug              = var.application_slug
+}
+
+resource "authentik_application" "browser" {
+  for_each = var.browser_group_policy_bindings
+
+  name              = "${var.application_name} Browser Access (${each.value.host})"
+  protocol_provider = authentik_provider_proxy.browser[each.key].id
+  slug              = replace(replace(replace(each.key, "/", "-"), ".", "-"), "_", "-")
 }
 
 # Authentik OAuth2 Provider
@@ -39,6 +64,43 @@ resource "authentik_provider_proxy" "gateway" {
   invalidation_flow  = data.authentik_flow.invalidation.id
   mode               = "forward_single"
   name               = "${var.application_name} forward-auth"
+}
+
+resource "authentik_provider_proxy" "browser" {
+  for_each = var.browser_group_policy_bindings
+
+  authorization_flow = data.authentik_flow.authorization.id
+  external_host      = each.value.host
+  invalidation_flow  = data.authentik_flow.invalidation.id
+  mode               = "forward_single"
+  name               = "${var.application_name} Browser Access (${each.value.host})"
+}
+
+# Authentik Group
+# https://registry.terraform.io/providers/goauthentik/authentik/latest/docs/resources/group
+
+resource "authentik_group" "browser" {
+  for_each = {
+    for group in distinct([for item in local.browser_group_policy_bindings : item.group]) : group => {
+      group = group
+    }
+  }
+
+  name         = each.value.group
+  is_superuser = false
+}
+
+# Authentik Policy Binding
+# https://registry.terraform.io/providers/goauthentik/authentik/latest/docs/resources/policy_binding
+
+resource "authentik_policy_binding" "browser_group" {
+  for_each = {
+    for item in local.browser_group_policy_bindings : "${item.host_key}:${item.group}" => item
+  }
+
+  target = authentik_application.browser[each.value.host_key].uuid
+  group  = authentik_group.browser[each.value.group].id
+  order  = 0
 }
 
 # Authentik Property Mapping Provider Scope
