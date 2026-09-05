@@ -29,7 +29,7 @@ resource "authentik_application" "browser" {
 
   name              = "${var.application_name} Browser Access (${each.value.host})"
   protocol_provider = authentik_provider_proxy.browser[each.key].id
-  slug              = replace(replace(replace(each.key, "/", "-"), ".", "-"), "_", "-")
+  slug              = replace(replace(replace(trimprefix(each.key, "https://"), ".", "-"), "/", "-"), "_", "-")
 }
 
 # Authentik OAuth2 Provider
@@ -130,7 +130,10 @@ resource "authentik_property_mapping_provider_scope" "roles" {
 # block in the root module, keyed on its name) so this resource assigns the proxy provider to
 # it, which makes each regional authentik-server serve forward-auth locally for Istio.
 resource "authentik_outpost" "embedded" {
-  name               = local.embedded_outpost_name
-  protocol_providers = [authentik_provider_proxy.gateway.id]
-  type               = "proxy"
+  name = local.embedded_outpost_name
+  protocol_providers = concat(
+    [authentik_provider_proxy.gateway.id],
+    [for provider in authentik_provider_proxy.browser : provider.id],
+  )
+  type = "proxy"
 }

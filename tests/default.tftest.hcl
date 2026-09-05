@@ -63,7 +63,7 @@ run "default_regional_config" {
   }
 
   assert {
-    condition     = output.browser_group_policy_binding_count == 1
-    error_message = "The default browser config should create one host-scoped Authentik browser policy binding."
+    condition     = output.browser_group_policy_binding_count == 2
+    error_message = "The default browser config should create one Authentik policy binding per declared group (2 for this fixture)."
   }
 }

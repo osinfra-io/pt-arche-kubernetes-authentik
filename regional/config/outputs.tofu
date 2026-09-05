@@ -6,6 +6,11 @@ output "browser_group_policy_bindings" {
   value       = var.browser_group_policy_bindings
 }
 
+output "browser_policy_bindings" {
+  description = "The per-group Authentik policy bindings created for browser routes, keyed by \"<host>:<group>\""
+  value       = authentik_policy_binding.browser_group
+}
+
 output "embedded_outpost_name" {
   description = "The name of the built-in embedded outpost, used by the root module's import block to bring it under management"
   value       = local.embedded_outpost_name
