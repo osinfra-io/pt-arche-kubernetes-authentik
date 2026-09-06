@@ -23,6 +23,25 @@ variable "authentik_url" {
   }
 }
 
+variable "browser_group_policy_bindings" {
+  description = "Per-host Authentik browser policy bindings. Each host creates a dedicated proxy application and binds every listed Authentik group to that application so browser routes can enforce group membership."
+  type = map(object({
+    groups = list(string)
+    host   = string
+  }))
+  default = {}
+
+  validation {
+    condition = alltrue([
+      for binding in values(var.browser_group_policy_bindings) :
+      startswith(binding.host, "https://") && length(binding.groups) > 0 && length(distinct(binding.groups)) == length(binding.groups) && alltrue([
+        for group in binding.groups : length(trimspace(group)) > 0
+      ])
+    ])
+    error_message = "Each browser_group_policy_bindings entry must declare a public HTTPS host and a non-empty, duplicate-free list of Authentik group names."
+  }
+}
+
 variable "authorization_flow_slug" {
   default     = "default-provider-authorization-implicit-consent"
   description = "The slug of the Authentik authorization flow to use for the providers"
