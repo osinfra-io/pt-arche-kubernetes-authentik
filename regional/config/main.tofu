@@ -2,17 +2,12 @@ locals {
   browser_group_policy_bindings = flatten([
     for host_key, binding in var.browser_group_policy_bindings : [
       for group in binding.groups : {
-        group_key = replace(group, "-", "_")
-        host_key  = host_key
-        group     = group
-        host      = binding.host
+        host_key = host_key
+        group    = group
+        host     = binding.host
       }
     ]
   ])
-
-  browser_group_policy_binding_map = {
-    for item in local.browser_group_policy_bindings : "${item.host_key}:${item.group_key}" => item
-  }
 }
 
 # Authentik Application
