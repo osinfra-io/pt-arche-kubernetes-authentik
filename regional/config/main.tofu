@@ -97,7 +97,7 @@ resource "authentik_source_oauth" "google" {
   authentication_flow = data.authentik_flow.default_source_authentication.id
   consumer_key        = var.google_oauth_client_id
   consumer_secret     = var.google_oauth_client_secret
-  enrollment_flow     = authentik_flow.google_enrollment[0].id
+  enrollment_flow     = authentik_flow.google_enrollment[0].uuid
   name                = "Google"
   provider_type       = "google"
   property_mappings = [
