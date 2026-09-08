@@ -11,9 +11,19 @@ output "browser_policy_bindings" {
   value       = authentik_policy_binding.browser_group
 }
 
+output "default_authentication_identification_stage_name" {
+  description = "The name of the built-in default authentication flow's identification stage, used by the root module's import block to bring it under management"
+  value       = local.default_authentication_identification_stage_name
+}
+
 output "embedded_outpost_name" {
   description = "The name of the built-in embedded outpost, used by the root module's import block to bring it under management"
   value       = local.embedded_outpost_name
+}
+
+output "google_oauth_source_enabled" {
+  description = "Whether the optional Google Authentik source was created (true when both OAuth credential inputs are set)"
+  value       = length(authentik_source_oauth.google) > 0
 }
 
 output "issuer_url" {

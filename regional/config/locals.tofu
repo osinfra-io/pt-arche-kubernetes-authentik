@@ -6,6 +6,12 @@ locals {
   # provider to it makes each regional server serve forward-auth locally for Istio ext_authz.
   embedded_outpost_name = "authentik Embedded Outpost"
 
+  # Name of the built-in default authentication flow's identification stage. Consumers import
+  # the pre-existing object into authentik_stage_identification.default_authentication (same
+  # pattern as the embedded outpost import), so this module only adds Google to its "sources"
+  # list without touching any of its other live settings.
+  default_authentication_identification_stage_name = "default-authentication-identification"
+
   # Normalize the base URL so a trailing slash in authentik_url does not produce double slashes in
   # the issuer and JWKS URLs.
   authentik_base_url = trimsuffix(var.authentik_url, "/")
