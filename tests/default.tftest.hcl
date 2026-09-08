@@ -45,6 +45,13 @@ mock_provider "authentik" {
       id = 2
     }
   }
+
+  mock_resource "authentik_source_oauth" {
+    defaults = {
+      id   = 6
+      uuid = "00000000-0000-0000-0000-000000000006"
+    }
+  }
 }
 
 run "default_regional" {
@@ -65,5 +72,10 @@ run "default_regional_config" {
   assert {
     condition     = output.browser_group_policy_binding_count == 2
     error_message = "The default browser config should create one Authentik policy binding per declared group (2 for this fixture)."
+  }
+
+  assert {
+    condition     = output.google_oauth_source_enabled == true
+    error_message = "The Google Authentik source should be created when both OAuth credential variables are set."
   }
 }

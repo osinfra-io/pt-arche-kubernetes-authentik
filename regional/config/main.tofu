@@ -50,6 +50,26 @@ resource "authentik_provider_oauth2" "gateway" {
   ]
 }
 
+# Authentik Google OAuth Source
+# https://registry.terraform.io/providers/goauthentik/authentik/latest/docs/resources/source_oauth
+
+resource "authentik_source_oauth" "google" {
+  count = var.google_oauth_client_id == "" || var.google_oauth_client_secret == "" ? 0 : 1
+
+  authentication_flow = data.authentik_flow.default_source_authentication.id
+  consumer_key        = var.google_oauth_client_id
+  consumer_secret     = var.google_oauth_client_secret
+  enrollment_flow     = data.authentik_flow.default_source_enrollment.id
+  name                = "Google"
+  provider_type       = "google"
+  property_mappings = [
+    data.authentik_property_mapping_provider_scope.email.id,
+    data.authentik_property_mapping_provider_scope.openid.id,
+    data.authentik_property_mapping_provider_scope.profile.id,
+  ]
+  slug = "google"
+}
+
 # Authentik Proxy Provider (forward-auth)
 # https://registry.terraform.io/providers/goauthentik/authentik/latest/docs/resources/provider_proxy
 

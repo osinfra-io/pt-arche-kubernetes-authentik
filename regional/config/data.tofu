@@ -12,6 +12,14 @@ data "authentik_flow" "authorization" {
   slug = var.authorization_flow_slug
 }
 
+data "authentik_flow" "default_source_authentication" {
+  slug = "default-source-authentication"
+}
+
+data "authentik_flow" "default_source_enrollment" {
+  slug = "default-source-enrollment"
+}
+
 data "authentik_flow" "invalidation" {
   slug = var.invalidation_flow_slug
 }

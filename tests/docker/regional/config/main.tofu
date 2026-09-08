@@ -24,9 +24,11 @@ provider "authentik" {
 module "test" {
   source = "../../../../regional/config"
 
-  authentik_url = var.authentik_url
-  external_host = var.external_host
-  namespace     = var.namespace
+  authentik_url              = var.authentik_url
+  external_host              = var.external_host
+  google_oauth_client_id     = var.google_oauth_client_id
+  google_oauth_client_secret = var.google_oauth_client_secret
+  namespace                  = var.namespace
 
   redirect_uris = [
     {

@@ -31,6 +31,19 @@ variable "external_host" {
   type        = string
 }
 
+variable "google_oauth_client_id" {
+  default     = ""
+  description = "Optional Google OAuth client ID for local testing of the authentik_source_oauth resource; set via TF_VAR_google_oauth_client_id. Leave empty to disable the source."
+  type        = string
+}
+
+variable "google_oauth_client_secret" {
+  default     = ""
+  description = "Optional Google OAuth client secret for local testing of the authentik_source_oauth resource; set via TF_VAR_google_oauth_client_secret. Leave empty to disable the source."
+  sensitive   = true
+  type        = string
+}
+
 variable "namespace" {
   default     = "authentik"
   description = "The local namespace value used for embedded outpost outputs in the test fixture"
