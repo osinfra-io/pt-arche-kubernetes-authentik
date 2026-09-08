@@ -48,6 +48,24 @@ import {
   to = module.test.authentik_outpost.embedded
 }
 
+# Authentik Stage Data Source
+# https://registry.terraform.io/providers/goauthentik/authentik/latest/docs/data-sources/stage
+
+data "authentik_stage" "default_authentication_identification" {
+  name = module.test.default_authentication_identification_stage_name
+}
+
+# Authentik Stage Identification (import)
+# https://registry.terraform.io/providers/goauthentik/authentik/latest/docs/resources/stage_identification
+
+# The default authentication flow's identification stage is a pre-existing, shared object built
+# into every Authentik instance, so it is imported (rather than created) to add the Google source
+# to its "sources" list without touching any of its other live settings.
+import {
+  id = data.authentik_stage.default_authentication_identification.id
+  to = module.test.authentik_stage_identification.default_authentication
+}
+
 output "issuer_url" {
   value = module.test.issuer_url
 }

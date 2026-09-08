@@ -16,6 +16,19 @@ mock_provider "authentik" {
     }
   }
 
+  mock_resource "authentik_flow" {
+    defaults = {
+      id   = "00000000-0000-0000-0000-000000000007"
+      uuid = "00000000-0000-0000-0000-000000000007"
+    }
+  }
+
+  mock_resource "authentik_flow_stage_binding" {
+    defaults = {
+      id = 8
+    }
+  }
+
   mock_resource "authentik_group" {
     defaults = {
       id = 4
@@ -50,6 +63,18 @@ mock_provider "authentik" {
     defaults = {
       id   = 6
       uuid = "00000000-0000-0000-0000-000000000006"
+    }
+  }
+
+  mock_resource "authentik_stage_identification" {
+    defaults = {
+      id = 10
+    }
+  }
+
+  mock_resource "authentik_stage_user_write" {
+    defaults = {
+      id = 9
     }
   }
 }

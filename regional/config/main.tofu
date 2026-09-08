@@ -50,6 +50,44 @@ resource "authentik_provider_oauth2" "gateway" {
   ]
 }
 
+# Authentik Flow
+# https://registry.terraform.io/providers/goauthentik/authentik/latest/docs/resources/flow
+
+# Dedicated enrollment flow for the Google source, kept separate from
+# default-source-enrollment so JIT-created Google users always land in
+# authentik_group.all, without changing the enrollment behavior of any other source.
+resource "authentik_flow" "google_enrollment" {
+  count = var.google_oauth_client_id == "" || var.google_oauth_client_secret == "" ? 0 : 1
+
+  name        = "Google Source Enrollment"
+  title       = "Google Source Enrollment"
+  slug        = "google-source-enrollment"
+  designation = "enrollment"
+}
+
+# Authentik Stage
+# https://registry.terraform.io/providers/goauthentik/authentik/latest/docs/resources/stage_user_write
+
+resource "authentik_stage_user_write" "google_enrollment" {
+  count = var.google_oauth_client_id == "" || var.google_oauth_client_secret == "" ? 0 : 1
+
+  name                     = "Google Source Enrollment - User Write"
+  create_users_as_inactive = false
+  create_users_group       = authentik_group.all.id
+  user_creation_mode       = "create_when_required"
+}
+
+# Authentik Flow Stage Binding
+# https://registry.terraform.io/providers/goauthentik/authentik/latest/docs/resources/flow_stage_binding
+
+resource "authentik_flow_stage_binding" "google_enrollment" {
+  count = var.google_oauth_client_id == "" || var.google_oauth_client_secret == "" ? 0 : 1
+
+  target = authentik_flow.google_enrollment[0].uuid
+  stage  = authentik_stage_user_write.google_enrollment[0].id
+  order  = 0
+}
+
 # Authentik Google OAuth Source
 # https://registry.terraform.io/providers/goauthentik/authentik/latest/docs/resources/source_oauth
 
@@ -59,7 +97,7 @@ resource "authentik_source_oauth" "google" {
   authentication_flow = data.authentik_flow.default_source_authentication.id
   consumer_key        = var.google_oauth_client_id
   consumer_secret     = var.google_oauth_client_secret
-  enrollment_flow     = data.authentik_flow.default_source_enrollment.id
+  enrollment_flow     = authentik_flow.google_enrollment[0].id
   name                = "Google"
   provider_type       = "google"
   property_mappings = [
@@ -68,6 +106,24 @@ resource "authentik_source_oauth" "google" {
     data.authentik_property_mapping_provider_scope.profile.id,
   ]
   slug = "google"
+}
+
+# Authentik Stage
+# https://registry.terraform.io/providers/goauthentik/authentik/latest/docs/resources/stage_identification
+
+# The default authentication flow's identification stage is a pre-existing, shared object (see
+# the embedded outpost comment below for why this pattern is used). Consumers import it here so
+# adding the Google source only appends to its "sources" list; every other field is set to match
+# the stage's current live configuration so nothing else changes.
+resource "authentik_stage_identification" "default_authentication" {
+  name                      = local.default_authentication_identification_stage_name
+  case_insensitive_matching = true
+  enable_remember_me        = false
+  pretend_user_exists       = true
+  show_matched_user         = true
+  show_source_labels        = false
+  sources                   = length(authentik_source_oauth.google) > 0 ? [authentik_source_oauth.google[0].uuid] : []
+  user_fields               = ["email", "username"]
 }
 
 # Authentik Proxy Provider (forward-auth)
@@ -102,6 +158,13 @@ resource "authentik_group" "browser" {
   }
 
   name         = each.value.group
+  is_superuser = false
+}
+
+# Every user provisioned through any Authentik source (not just Google) lands here by default;
+# route_auth_policies can grant baseline access platform-wide by requiring this group.
+resource "authentik_group" "all" {
+  name         = "all"
   is_superuser = false
 }
 
