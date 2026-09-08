@@ -78,7 +78,7 @@ The Docker fixture uses the bootstrap API token from the committed `tests/docker
 
 The `google_oauth_client_id`/`google_oauth_client_secret` variables in `tests/docker/regional/config` are empty by default, so `authentik_source_oauth.google` is skipped. To exercise real Google sign-in against the local fixture:
 
-1. Use the sandbox environment's `authentik-google-oauth` client (provisioned in `pt-pneuma/main.tofu`) — its `allowed_redirect_uris` already includes `http://localhost:9000/source/oauth/callback/google/` in addition to the real sandbox Authentik callback, specifically so it can be reused for local module testing. Non-production and production clients are not widened this way, so don't use those. Retrieve the client ID/secret from the sandbox `pt-pneuma` outputs (`authentik_google_oauth_client_id` / `authentik_google_oauth_client_secret`, the latter is sensitive).
+1. Use (or create) a Google OAuth 2.0 client of type "Web application" in the GCP console (**APIs & Services → Credentials**) — not the IAM OAuth Clients page, which is an unrelated Workforce Identity Federation feature. Add `http://localhost:9000/source/oauth/callback/google/` to its authorized redirect URIs. This client is managed manually and is not provisioned by Terraform (see `pt-pneuma`'s `google_oauth_client_id`/`google_oauth_client_secret` input variables).
 2. Export the credentials before applying the "Apply and inspect" flow above:
 
    ```none
