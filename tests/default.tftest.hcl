@@ -16,6 +16,19 @@ mock_provider "authentik" {
     }
   }
 
+  mock_resource "authentik_flow" {
+    defaults = {
+      id   = "00000000-0000-0000-0000-000000000007"
+      uuid = "00000000-0000-0000-0000-000000000007"
+    }
+  }
+
+  mock_resource "authentik_flow_stage_binding" {
+    defaults = {
+      id = 8
+    }
+  }
+
   mock_resource "authentik_group" {
     defaults = {
       id = 4
@@ -45,6 +58,37 @@ mock_provider "authentik" {
       id = 2
     }
   }
+
+  mock_resource "authentik_source_oauth" {
+    defaults = {
+      id   = 6
+      uuid = "00000000-0000-0000-0000-000000000006"
+    }
+  }
+
+  mock_resource "authentik_stage_identification" {
+    defaults = {
+      id = 10
+    }
+  }
+
+  mock_resource "authentik_stage_user_write" {
+    defaults = {
+      id = 9
+    }
+  }
+
+  mock_resource "authentik_stage_prompt" {
+    defaults = {
+      id = 11
+    }
+  }
+
+  mock_resource "authentik_stage_prompt_field" {
+    defaults = {
+      id = 12
+    }
+  }
 }
 
 run "default_regional" {
@@ -65,5 +109,10 @@ run "default_regional_config" {
   assert {
     condition     = output.browser_group_policy_binding_count == 2
     error_message = "The default browser config should create one Authentik policy binding per declared group (2 for this fixture)."
+  }
+
+  assert {
+    condition     = output.google_oauth_source_enabled == true
+    error_message = "The Google Authentik source should be created when both OAuth credential variables are set."
   }
 }

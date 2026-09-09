@@ -4,7 +4,8 @@
 terraform {
   required_providers {
     authentik = {
-      source = "goauthentik/authentik"
+      source  = "goauthentik/authentik"
+      version = "~> 2026.5.0"
     }
   }
 }
@@ -24,14 +25,25 @@ provider "authentik" {
 module "test" {
   source = "../../../../regional/config"
 
-  authentik_url = var.authentik_url
-  external_host = var.external_host
-  namespace     = var.namespace
+  application_name = "Development"
+  application_slug = "development-oidc"
+  authentik_url    = var.authentik_url
+  browser_group_policy_bindings = {
+    development = {
+      groups = ["all"]
+      host   = var.external_host
+    }
+  }
+  client_id                  = "development"
+  external_host              = var.external_host
+  google_oauth_client_id     = var.google_oauth_client_id
+  google_oauth_client_secret = var.google_oauth_client_secret
+  namespace                  = var.namespace
 
   redirect_uris = [
     {
       matching_mode = "strict"
-      url           = "https://gateway.localhost/oauth2/callback"
+      url           = "https://dev.localhost/oauth2/callback"
     },
   ]
 }
@@ -44,6 +56,24 @@ module "test" {
 import {
   id = var.embedded_outpost_id
   to = module.test.authentik_outpost.embedded
+}
+
+# Authentik Stage Data Source
+# https://registry.terraform.io/providers/goauthentik/authentik/latest/docs/data-sources/stage
+
+data "authentik_stage" "default_authentication_identification" {
+  name = module.test.default_authentication_identification_stage_name
+}
+
+# Authentik Stage Identification (import)
+# https://registry.terraform.io/providers/goauthentik/authentik/latest/docs/resources/stage_identification
+
+# The default authentication flow's identification stage is a pre-existing, shared object built
+# into every Authentik instance, so it is imported (rather than created) to add the Google source
+# to its "sources" list without touching any of its other live settings.
+import {
+  id = data.authentik_stage.default_authentication_identification.id
+  to = module.test.authentik_stage_identification.default_authentication
 }
 
 output "issuer_url" {

@@ -64,6 +64,19 @@ variable "external_host" {
   }
 }
 
+variable "google_oauth_client_id" {
+  default     = ""
+  description = "The OAuth client ID for the optional Google source in Authentik; leave empty to disable the source."
+  type        = string
+}
+
+variable "google_oauth_client_secret" {
+  default     = ""
+  description = "The OAuth client secret for the optional Google source in Authentik; leave empty to disable the source."
+  sensitive   = true
+  type        = string
+}
+
 variable "invalidation_flow_slug" {
   default     = "default-provider-invalidation-flow"
   description = "The slug of the Authentik invalidation flow to use for the providers"
@@ -80,8 +93,9 @@ variable "redirect_uris" {
   description = "The list of allowed OAuth2 redirect URIs for the gateway OIDC provider"
 
   type = list(object({
-    matching_mode = string
-    url           = string
+    matching_mode     = string
+    redirect_uri_type = optional(string, "authorization")
+    url               = string
   }))
 }
 

@@ -50,6 +50,119 @@ resource "authentik_provider_oauth2" "gateway" {
   ]
 }
 
+# Authentik Flow
+# https://registry.terraform.io/providers/goauthentik/authentik/latest/docs/resources/flow
+
+# Dedicated enrollment flow for the Google source, kept separate from
+# default-source-enrollment so JIT-created Google users always land in
+# authentik_group.all, without changing the enrollment behavior of any other source.
+resource "authentik_flow" "google_enrollment" {
+  count = var.google_oauth_client_id == "" || var.google_oauth_client_secret == "" ? 0 : 1
+
+  name        = "Google Source Enrollment"
+  title       = "Google Source Enrollment"
+  slug        = "google-source-enrollment"
+  designation = "enrollment"
+}
+
+# Authentik Stage Prompt Field
+# https://registry.terraform.io/providers/goauthentik/authentik/latest/docs/resources/stage_prompt_field
+
+# Google doesn't return a username, only email and name, so JIT enrollment
+# forces the username to the Google account's email address as a read-only
+# field, matching the platform's existing user_email sub_mode for the gateway.
+resource "authentik_stage_prompt_field" "google_enrollment_username" {
+  count = var.google_oauth_client_id == "" || var.google_oauth_client_secret == "" ? 0 : 1
+
+  field_key                = "username"
+  initial_value            = "return prompt_context['email']"
+  initial_value_expression = true
+  label                    = "Username"
+  name                     = "Google Source Enrollment - Username"
+  order                    = 0
+  type                     = "text_read_only"
+}
+
+# Authentik Stage Prompt
+# https://registry.terraform.io/providers/goauthentik/authentik/latest/docs/resources/stage_prompt
+
+resource "authentik_stage_prompt" "google_enrollment_username" {
+  count = var.google_oauth_client_id == "" || var.google_oauth_client_secret == "" ? 0 : 1
+
+  fields = [
+    authentik_stage_prompt_field.google_enrollment_username[0].id,
+  ]
+  name = "Google Source Enrollment - Username Prompt"
+}
+
+# Authentik Stage User Write
+# https://registry.terraform.io/providers/goauthentik/authentik/latest/docs/resources/stage_user_write
+
+resource "authentik_stage_user_write" "google_enrollment" {
+  count = var.google_oauth_client_id == "" || var.google_oauth_client_secret == "" ? 0 : 1
+
+  name                     = "Google Source Enrollment - User Write"
+  create_users_as_inactive = false
+  create_users_group       = authentik_group.all.id
+  user_creation_mode       = "create_when_required"
+}
+
+# Authentik Flow Stage Binding
+# https://registry.terraform.io/providers/goauthentik/authentik/latest/docs/resources/flow_stage_binding
+
+resource "authentik_flow_stage_binding" "google_enrollment_username" {
+  count = var.google_oauth_client_id == "" || var.google_oauth_client_secret == "" ? 0 : 1
+
+  order  = 0
+  stage  = authentik_stage_prompt.google_enrollment_username[0].id
+  target = authentik_flow.google_enrollment[0].uuid
+}
+
+resource "authentik_flow_stage_binding" "google_enrollment" {
+  count = var.google_oauth_client_id == "" || var.google_oauth_client_secret == "" ? 0 : 1
+
+  order  = 1
+  stage  = authentik_stage_user_write.google_enrollment[0].id
+  target = authentik_flow.google_enrollment[0].uuid
+}
+
+# Authentik Google OAuth Source
+# https://registry.terraform.io/providers/goauthentik/authentik/latest/docs/resources/source_oauth
+
+resource "authentik_source_oauth" "google" {
+  count = var.google_oauth_client_id == "" || var.google_oauth_client_secret == "" ? 0 : 1
+
+  access_token_url    = "https://oauth2.googleapis.com/token"
+  authentication_flow = data.authentik_flow.default_source_authentication.id
+  authorization_url   = "https://accounts.google.com/o/oauth2/v2/auth"
+  consumer_key        = var.google_oauth_client_id
+  consumer_secret     = var.google_oauth_client_secret
+  enrollment_flow     = authentik_flow.google_enrollment[0].uuid
+  name                = "Google"
+  oidc_jwks_url       = "https://www.googleapis.com/oauth2/v3/certs"
+  profile_url         = "https://openidconnect.googleapis.com/v1/userinfo"
+  provider_type       = "google"
+  slug                = "google"
+}
+
+# Authentik Stage
+# https://registry.terraform.io/providers/goauthentik/authentik/latest/docs/resources/stage_identification
+
+# The default authentication flow's identification stage is a pre-existing, shared object (see
+# the embedded outpost comment below for why this pattern is used). Consumers import it here so
+# adding the Google source only appends to its "sources" list; every other field is set to match
+# the stage's current live configuration so nothing else changes.
+resource "authentik_stage_identification" "default_authentication" {
+  name                      = local.default_authentication_identification_stage_name
+  case_insensitive_matching = true
+  enable_remember_me        = false
+  pretend_user_exists       = true
+  show_matched_user         = true
+  show_source_labels        = false
+  sources                   = length(authentik_source_oauth.google) > 0 ? [authentik_source_oauth.google[0].uuid] : []
+  user_fields               = ["email", "username"]
+}
+
 # Authentik Proxy Provider (forward-auth)
 # https://registry.terraform.io/providers/goauthentik/authentik/latest/docs/resources/provider_proxy
 
@@ -79,9 +192,17 @@ resource "authentik_group" "browser" {
     for group in distinct([for item in local.browser_group_policy_bindings : item.group]) : group => {
       group = group
     }
+    if group != local.all_group_name
   }
 
   name         = each.value.group
+  is_superuser = false
+}
+
+# Every user provisioned through any Authentik source (not just Google) lands here by default;
+# route_auth_policies can grant baseline access platform-wide by requiring this group.
+resource "authentik_group" "all" {
+  name         = local.all_group_name
   is_superuser = false
 }
 
@@ -93,9 +214,9 @@ resource "authentik_policy_binding" "browser_group" {
     for item in local.browser_group_policy_bindings : "${item.host_key}:${item.group}" => item
   }
 
-  target = authentik_application.browser[each.value.host_key].uuid
-  group  = authentik_group.browser[each.value.group].id
+  group  = each.value.group == local.all_group_name ? authentik_group.all.id : authentik_group.browser[each.value.group].id
   order  = 0
+  target = authentik_application.browser[each.value.host_key].uuid
 }
 
 # Authentik Property Mapping Provider Scope

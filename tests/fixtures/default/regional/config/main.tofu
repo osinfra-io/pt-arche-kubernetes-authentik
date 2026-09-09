@@ -21,15 +21,22 @@ module "test" {
   authentik_url = "https://authentik.example.com"
   browser_group_policy_bindings = {
     "https://gateway.example.com" = {
-      groups = ["platform-engineers", "project-admins"]
+      groups = ["all", "project-admins"]
       host   = "https://gateway.example.com"
     }
   }
-  external_host = "https://gateway.example.com"
-  namespace     = "authentik"
+  external_host              = "https://gateway.example.com"
+  google_oauth_client_id     = "test-client-id"
+  google_oauth_client_secret = "test-client-secret"
+  namespace                  = "authentik"
 }
 
 output "browser_group_policy_binding_count" {
   description = "Number of per-group Authentik browser policy bindings created by the fixture"
   value       = length(module.test.browser_policy_bindings)
+}
+
+output "google_oauth_source_enabled" {
+  description = "Whether the fixture created the optional Google Authentik source"
+  value       = module.test.google_oauth_source_enabled
 }
