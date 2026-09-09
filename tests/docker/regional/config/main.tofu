@@ -24,7 +24,13 @@ provider "authentik" {
 module "test" {
   source = "../../../../regional/config"
 
-  authentik_url              = var.authentik_url
+  authentik_url = var.authentik_url
+  browser_group_policy_bindings = {
+    gateway_localhost = {
+      groups = ["all"]
+      host   = "https://gateway.localhost"
+    }
+  }
   external_host              = var.external_host
   google_oauth_client_id     = var.google_oauth_client_id
   google_oauth_client_secret = var.google_oauth_client_secret

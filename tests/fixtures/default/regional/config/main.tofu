@@ -21,7 +21,7 @@ module "test" {
   authentik_url = "https://authentik.example.com"
   browser_group_policy_bindings = {
     "https://gateway.example.com" = {
-      groups = ["platform-engineers", "project-admins"]
+      groups = ["all", "project-admins"]
       host   = "https://gateway.example.com"
     }
   }

@@ -2,6 +2,8 @@
 # https://opentofu.org/docs/language/values/locals
 
 locals {
+  all_group_name = "all"
+
   # The built-in embedded outpost that runs inside the authentik-server pods. Assigning the proxy
   # provider to it makes each regional server serve forward-auth locally for Istio ext_authz.
   embedded_outpost_name = "authentik Embedded Outpost"

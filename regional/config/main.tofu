@@ -188,6 +188,7 @@ resource "authentik_group" "browser" {
     for group in distinct([for item in local.browser_group_policy_bindings : item.group]) : group => {
       group = group
     }
+    if group != local.all_group_name
   }
 
   name         = each.value.group
@@ -197,7 +198,7 @@ resource "authentik_group" "browser" {
 # Every user provisioned through any Authentik source (not just Google) lands here by default;
 # route_auth_policies can grant baseline access platform-wide by requiring this group.
 resource "authentik_group" "all" {
-  name         = "all"
+  name         = local.all_group_name
   is_superuser = false
 }
 
@@ -209,9 +210,9 @@ resource "authentik_policy_binding" "browser_group" {
     for item in local.browser_group_policy_bindings : "${item.host_key}:${item.group}" => item
   }
 
-  target = authentik_application.browser[each.value.host_key].uuid
-  group  = authentik_group.browser[each.value.group].id
+  group  = each.value.group == local.all_group_name ? authentik_group.all.id : authentik_group.browser[each.value.group].id
   order  = 0
+  target = authentik_application.browser[each.value.host_key].uuid
 }
 
 # Authentik Property Mapping Provider Scope
