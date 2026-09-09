@@ -65,7 +65,37 @@ resource "authentik_flow" "google_enrollment" {
   designation = "enrollment"
 }
 
-# Authentik Stage
+# Authentik Stage Prompt Field
+# https://registry.terraform.io/providers/goauthentik/authentik/latest/docs/resources/stage_prompt_field
+
+# Google doesn't return a username, only email and name, so JIT enrollment
+# forces the username to the Google account's email address as a read-only
+# field, matching the platform's existing user_email sub_mode for the gateway.
+resource "authentik_stage_prompt_field" "google_enrollment_username" {
+  count = var.google_oauth_client_id == "" || var.google_oauth_client_secret == "" ? 0 : 1
+
+  field_key                = "username"
+  initial_value            = "return prompt_context['email']"
+  initial_value_expression = true
+  label                    = "Username"
+  name                     = "Google Source Enrollment - Username"
+  order                    = 0
+  type                     = "text_read_only"
+}
+
+# Authentik Stage Prompt
+# https://registry.terraform.io/providers/goauthentik/authentik/latest/docs/resources/stage_prompt
+
+resource "authentik_stage_prompt" "google_enrollment_username" {
+  count = var.google_oauth_client_id == "" || var.google_oauth_client_secret == "" ? 0 : 1
+
+  fields = [
+    authentik_stage_prompt_field.google_enrollment_username[0].id,
+  ]
+  name = "Google Source Enrollment - Username Prompt"
+}
+
+# Authentik Stage User Write
 # https://registry.terraform.io/providers/goauthentik/authentik/latest/docs/resources/stage_user_write
 
 resource "authentik_stage_user_write" "google_enrollment" {
@@ -80,12 +110,20 @@ resource "authentik_stage_user_write" "google_enrollment" {
 # Authentik Flow Stage Binding
 # https://registry.terraform.io/providers/goauthentik/authentik/latest/docs/resources/flow_stage_binding
 
+resource "authentik_flow_stage_binding" "google_enrollment_username" {
+  count = var.google_oauth_client_id == "" || var.google_oauth_client_secret == "" ? 0 : 1
+
+  order  = 0
+  stage  = authentik_stage_prompt.google_enrollment_username[0].id
+  target = authentik_flow.google_enrollment[0].uuid
+}
+
 resource "authentik_flow_stage_binding" "google_enrollment" {
   count = var.google_oauth_client_id == "" || var.google_oauth_client_secret == "" ? 0 : 1
 
-  target = authentik_flow.google_enrollment[0].uuid
+  order  = 1
   stage  = authentik_stage_user_write.google_enrollment[0].id
-  order  = 0
+  target = authentik_flow.google_enrollment[0].uuid
 }
 
 # Authentik Google OAuth Source
@@ -100,12 +138,7 @@ resource "authentik_source_oauth" "google" {
   enrollment_flow     = authentik_flow.google_enrollment[0].uuid
   name                = "Google"
   provider_type       = "google"
-  property_mappings = [
-    data.authentik_property_mapping_provider_scope.email.id,
-    data.authentik_property_mapping_provider_scope.openid.id,
-    data.authentik_property_mapping_provider_scope.profile.id,
-  ]
-  slug = "google"
+  slug                = "google"
 }
 
 # Authentik Stage

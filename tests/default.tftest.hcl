@@ -77,6 +77,18 @@ mock_provider "authentik" {
       id = 9
     }
   }
+
+  mock_resource "authentik_stage_prompt" {
+    defaults = {
+      id = 11
+    }
+  }
+
+  mock_resource "authentik_stage_prompt_field" {
+    defaults = {
+      id = 12
+    }
+  }
 }
 
 run "default_regional" {
