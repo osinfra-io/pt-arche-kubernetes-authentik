@@ -26,7 +26,7 @@ variable "authentik_url" {
 }
 
 variable "external_host" {
-  default     = "https://gateway.localhost"
+  default     = "https://localhost"
   description = "The local external host value used for the proxy provider test fixture"
   type        = string
 }

@@ -24,13 +24,16 @@ provider "authentik" {
 module "test" {
   source = "../../../../regional/config"
 
-  authentik_url = var.authentik_url
+  application_name = "Localhost"
+  application_slug = "localhost"
+  authentik_url    = var.authentik_url
   browser_group_policy_bindings = {
-    gateway_localhost = {
+    localhost = {
       groups = ["all"]
-      host   = "https://gateway.localhost"
+      host   = var.external_host
     }
   }
+  client_id                  = "localhost"
   external_host              = var.external_host
   google_oauth_client_id     = var.google_oauth_client_id
   google_oauth_client_secret = var.google_oauth_client_secret
@@ -39,7 +42,7 @@ module "test" {
   redirect_uris = [
     {
       matching_mode = "strict"
-      url           = "https://gateway.localhost/oauth2/callback"
+      url           = "https://localhost/oauth2/callback"
     },
   ]
 }
