@@ -4,7 +4,8 @@
 terraform {
   required_providers {
     authentik = {
-      source = "goauthentik/authentik"
+      source  = "goauthentik/authentik"
+      version = "~> 2026.5.0"
     }
   }
 }
@@ -24,16 +25,16 @@ provider "authentik" {
 module "test" {
   source = "../../../../regional/config"
 
-  application_name = "Localhost"
-  application_slug = "localhost"
+  application_name = "Development"
+  application_slug = "development-oidc"
   authentik_url    = var.authentik_url
   browser_group_policy_bindings = {
-    localhost = {
+    development = {
       groups = ["all"]
       host   = var.external_host
     }
   }
-  client_id                  = "localhost"
+  client_id                  = "development"
   external_host              = var.external_host
   google_oauth_client_id     = var.google_oauth_client_id
   google_oauth_client_secret = var.google_oauth_client_secret
@@ -42,7 +43,7 @@ module "test" {
   redirect_uris = [
     {
       matching_mode = "strict"
-      url           = "https://localhost/oauth2/callback"
+      url           = "https://dev.localhost/oauth2/callback"
     },
   ]
 }

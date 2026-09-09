@@ -93,8 +93,9 @@ variable "redirect_uris" {
   description = "The list of allowed OAuth2 redirect URIs for the gateway OIDC provider"
 
   type = list(object({
-    matching_mode = string
-    url           = string
+    matching_mode     = string
+    redirect_uri_type = optional(string, "authorization")
+    url               = string
   }))
 }
 

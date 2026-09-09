@@ -132,11 +132,15 @@ resource "authentik_flow_stage_binding" "google_enrollment" {
 resource "authentik_source_oauth" "google" {
   count = var.google_oauth_client_id == "" || var.google_oauth_client_secret == "" ? 0 : 1
 
+  access_token_url    = "https://oauth2.googleapis.com/token"
   authentication_flow = data.authentik_flow.default_source_authentication.id
+  authorization_url   = "https://accounts.google.com/o/oauth2/v2/auth"
   consumer_key        = var.google_oauth_client_id
   consumer_secret     = var.google_oauth_client_secret
   enrollment_flow     = authentik_flow.google_enrollment[0].uuid
   name                = "Google"
+  oidc_jwks_url       = "https://www.googleapis.com/oauth2/v3/certs"
+  profile_url         = "https://openidconnect.googleapis.com/v1/userinfo"
   provider_type       = "google"
   slug                = "google"
 }
