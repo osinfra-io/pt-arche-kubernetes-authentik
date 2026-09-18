@@ -246,6 +246,9 @@ resource "authentik_property_mapping_provider_scope" "roles" {
 # block in the root module, keyed on its name) so this resource assigns the proxy provider to
 # it, which makes each regional authentik-server serve forward-auth locally for Istio.
 resource "authentik_outpost" "embedded" {
+  config = jsonencode({
+    authentik_host = local.outpost_authentik_url
+  })
   name = local.embedded_outpost_name
   protocol_providers = concat(
     [authentik_provider_proxy.gateway.id],

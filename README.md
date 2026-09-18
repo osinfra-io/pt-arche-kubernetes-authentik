@@ -44,50 +44,11 @@ tofu init
 tofu test
 ```
 
-You can also run a **Docker integration test** for `regional/config` against a local Authentik instance. Two modes are available depending on whether you want resources to persist for inspection.
+For the Docker integration test and full Istio browser-authentication flow, install the [`platform-grouping` plugin](https://github.com/osinfra-io/pt-ai-plugins/tree/main/plugins/platform-grouping) and ask Copilot CLI to use the `test-istio-authentik-locally` skill. The skill discovers the related repositories, starts and validates both fixtures, diagnoses failures, supports optional Google OAuth testing, and performs cleanup when requested.
 
-**Full cycle** — creates resources, runs assertions, then destroys everything:
-
-```none
-docker compose -f tests/docker/compose.yml up -d
-./tests/docker/wait-for-authentik.sh
-tofu -chdir=tests/docker/regional/config init
-tofu -chdir=tests/docker/regional/config test -filter=regional-config-live.tftest.hcl
-docker compose -f tests/docker/compose.yml down -v
+```text
+Use the test-istio-authentik-locally skill to test this checkout.
 ```
-
-**Apply and inspect** — creates resources and leaves them running for manual inspection:
-
-```none
-docker compose --env-file tests/docker/.env -f tests/docker/compose.yml up -d
-./tests/docker/wait-for-authentik.sh
-tofu -chdir=tests/docker/regional/config init
-tofu -chdir=tests/docker/regional/config apply
-```
-
-When you're done, tear down:
-
-```none
-tofu -chdir=tests/docker/regional/config destroy
-docker compose -f tests/docker/compose.yml down -v
-```
-
-The Docker fixture uses the bootstrap API token from the committed `tests/docker/.env` defaults. The Authentik UI is available at `http://localhost:9000` (login: `akadmin` / `not-a-secret`).
-
-### Testing the Google OAuth source locally
-
-The `google_oauth_client_id`/`google_oauth_client_secret` variables in `tests/docker/regional/config` are empty by default, so `authentik_source_oauth.google` is skipped. To exercise real Google sign-in against the local fixture:
-
-1. Use (or create) a Google OAuth 2.0 client of type "Web application" in the GCP console (**APIs & Services → Credentials**) — not the IAM OAuth Clients page, which is an unrelated Workforce Identity Federation feature. Add `http://localhost:9000/source/oauth/callback/google/` to its authorized redirect URIs. This client is managed manually and is not provisioned by Terraform (see `pt-pneuma`'s `google_oauth_client_id`/`google_oauth_client_secret` input variables).
-2. Export the credentials before applying the "Apply and inspect" flow above:
-
-   ```none
-   export TF_VAR_google_oauth_client_id="<client-id>"
-   export TF_VAR_google_oauth_client_secret="<client-secret>"
-   tofu -chdir=tests/docker/regional/config apply
-   ```
-
-3. The "Google" source becomes available on the Authentik login page at `http://localhost:9000`.
 
 ## 📦 Release
 

@@ -88,6 +88,22 @@ variable "namespace" {
   type        = string
 }
 
+variable "outpost_authentik_url" {
+  default     = null
+  description = "The browser-accessible Authentik base URL used by the embedded outpost; defaults to authentik_url"
+  nullable    = true
+  type        = string
+
+  validation {
+    condition = var.outpost_authentik_url == null ? true : anytrue([
+      startswith(var.outpost_authentik_url, "https://"),
+      startswith(var.outpost_authentik_url, "http://localhost:"),
+      startswith(var.outpost_authentik_url, "http://127.0.0.1:"),
+    ])
+    error_message = "The outpost_authentik_url must use HTTPS, except for local development URLs on localhost or 127.0.0.1."
+  }
+}
+
 variable "redirect_uris" {
   default     = []
   description = "The list of allowed OAuth2 redirect URIs for the gateway OIDC provider"

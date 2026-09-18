@@ -22,6 +22,8 @@ locals {
   # https://docs.goauthentik.io/add-secure-apps/providers/oauth2
   issuer_url = "${local.authentik_base_url}/application/o/${var.application_slug}/"
 
+  outpost_authentik_url = var.outpost_authentik_url != null ? var.outpost_authentik_url : var.authentik_url
+
   jwks_uri = "${local.authentik_base_url}/application/o/${var.application_slug}/jwks/"
 
   # The embedded outpost is served by the authentik-server Service, which Istio ext_authz

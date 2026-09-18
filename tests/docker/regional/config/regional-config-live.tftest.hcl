@@ -5,7 +5,7 @@ run "regional_config_live" {
   command = apply
 
   assert {
-    condition     = output.issuer_url == "https://127.0.0.1:9443/application/o/gateway/"
+    condition     = output.issuer_url == "https://127.0.0.1:9443/application/o/development-oidc/"
     error_message = "The live fixture should produce the expected OIDC issuer URL."
   }
 
