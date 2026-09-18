@@ -115,4 +115,9 @@ run "default_regional_config" {
     condition     = output.google_oauth_source_enabled == true
     error_message = "The Google Authentik source should be created when both OAuth credential variables are set."
   }
+
+  assert {
+    condition     = output.preserved_authentication_source == true
+    error_message = "The Google Authentik source should preserve existing identification-stage sources."
+  }
 }

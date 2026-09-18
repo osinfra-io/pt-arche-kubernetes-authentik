@@ -54,6 +54,17 @@ variable "client_id" {
   type        = string
 }
 
+variable "default_authentication_source_uuids" {
+  default     = []
+  description = "UUIDs of existing sources assigned to the shared default authentication identification stage; preserved when the optional Google source is added"
+  type        = list(string)
+
+  validation {
+    condition     = length(distinct(var.default_authentication_source_uuids)) == length(var.default_authentication_source_uuids)
+    error_message = "The default_authentication_source_uuids list must not contain duplicates."
+  }
+}
+
 variable "external_host" {
   description = "The public URL of the protected gateway, used as the proxy provider external host"
   type        = string

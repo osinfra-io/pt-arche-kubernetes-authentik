@@ -57,7 +57,7 @@ resource "authentik_provider_oauth2" "gateway" {
 # default-source-enrollment so JIT-created Google users always land in
 # authentik_group.all, without changing the enrollment behavior of any other source.
 resource "authentik_flow" "google_enrollment" {
-  count = var.google_oauth_client_id == "" || var.google_oauth_client_secret == "" ? 0 : 1
+  count = local.google_oauth_enabled ? 1 : 0
 
   name        = "Google Source Enrollment"
   title       = "Google Source Enrollment"
@@ -72,7 +72,7 @@ resource "authentik_flow" "google_enrollment" {
 # forces the username to the Google account's email address as a read-only
 # field, matching the platform's existing user_email sub_mode for the gateway.
 resource "authentik_stage_prompt_field" "google_enrollment_username" {
-  count = var.google_oauth_client_id == "" || var.google_oauth_client_secret == "" ? 0 : 1
+  count = local.google_oauth_enabled ? 1 : 0
 
   field_key                = "username"
   initial_value            = "return prompt_context['email']"
@@ -87,7 +87,7 @@ resource "authentik_stage_prompt_field" "google_enrollment_username" {
 # https://registry.terraform.io/providers/goauthentik/authentik/latest/docs/resources/stage_prompt
 
 resource "authentik_stage_prompt" "google_enrollment_username" {
-  count = var.google_oauth_client_id == "" || var.google_oauth_client_secret == "" ? 0 : 1
+  count = local.google_oauth_enabled ? 1 : 0
 
   fields = [
     authentik_stage_prompt_field.google_enrollment_username[0].id,
@@ -99,7 +99,7 @@ resource "authentik_stage_prompt" "google_enrollment_username" {
 # https://registry.terraform.io/providers/goauthentik/authentik/latest/docs/resources/stage_user_write
 
 resource "authentik_stage_user_write" "google_enrollment" {
-  count = var.google_oauth_client_id == "" || var.google_oauth_client_secret == "" ? 0 : 1
+  count = local.google_oauth_enabled ? 1 : 0
 
   name                     = "Google Source Enrollment - User Write"
   create_users_as_inactive = false
@@ -111,7 +111,7 @@ resource "authentik_stage_user_write" "google_enrollment" {
 # https://registry.terraform.io/providers/goauthentik/authentik/latest/docs/resources/flow_stage_binding
 
 resource "authentik_flow_stage_binding" "google_enrollment_username" {
-  count = var.google_oauth_client_id == "" || var.google_oauth_client_secret == "" ? 0 : 1
+  count = local.google_oauth_enabled ? 1 : 0
 
   order  = 0
   stage  = authentik_stage_prompt.google_enrollment_username[0].id
@@ -119,7 +119,7 @@ resource "authentik_flow_stage_binding" "google_enrollment_username" {
 }
 
 resource "authentik_flow_stage_binding" "google_enrollment" {
-  count = var.google_oauth_client_id == "" || var.google_oauth_client_secret == "" ? 0 : 1
+  count = local.google_oauth_enabled ? 1 : 0
 
   order  = 1
   stage  = authentik_stage_user_write.google_enrollment[0].id
@@ -130,7 +130,7 @@ resource "authentik_flow_stage_binding" "google_enrollment" {
 # https://registry.terraform.io/providers/goauthentik/authentik/latest/docs/resources/source_oauth
 
 resource "authentik_source_oauth" "google" {
-  count = var.google_oauth_client_id == "" || var.google_oauth_client_secret == "" ? 0 : 1
+  count = local.google_oauth_enabled ? 1 : 0
 
   access_token_url    = "https://oauth2.googleapis.com/token"
   authentication_flow = data.authentik_flow.default_source_authentication.id
@@ -148,19 +148,23 @@ resource "authentik_source_oauth" "google" {
 # Authentik Stage
 # https://registry.terraform.io/providers/goauthentik/authentik/latest/docs/resources/stage_identification
 
-# The default authentication flow's identification stage is a pre-existing, shared object (see
-# the embedded outpost comment below for why this pattern is used). Consumers import it here so
-# adding the Google source only appends to its "sources" list; every other field is set to match
-# the stage's current live configuration so nothing else changes.
+# The default authentication flow's identification stage is a pre-existing, shared object.
+# Consumers import it only when Google is enabled and pass any independently managed source UUIDs
+# so adding Google preserves the complete source list.
 resource "authentik_stage_identification" "default_authentication" {
+  count = local.google_oauth_enabled ? 1 : 0
+
   name                      = local.default_authentication_identification_stage_name
   case_insensitive_matching = true
   enable_remember_me        = false
   pretend_user_exists       = true
   show_matched_user         = true
   show_source_labels        = false
-  sources                   = length(authentik_source_oauth.google) > 0 ? [authentik_source_oauth.google[0].uuid] : []
-  user_fields               = ["email", "username"]
+  sources = distinct(concat(
+    var.default_authentication_source_uuids,
+    [authentik_source_oauth.google[0].uuid],
+  ))
+  user_fields = ["email", "username"]
 }
 
 # Authentik Proxy Provider (forward-auth)

@@ -25,6 +25,9 @@ module "test" {
       host   = "https://gateway.example.com"
     }
   }
+  default_authentication_source_uuids = [
+    "00000000-0000-0000-0000-000000000013",
+  ]
   external_host              = "https://gateway.example.com"
   google_oauth_client_id     = "test-client-id"
   google_oauth_client_secret = "test-client-secret"
@@ -39,4 +42,9 @@ output "browser_group_policy_binding_count" {
 output "google_oauth_source_enabled" {
   description = "Whether the fixture created the optional Google Authentik source"
   value       = module.test.google_oauth_source_enabled
+}
+
+output "preserved_authentication_source" {
+  description = "Whether the fixture preserved its pre-existing authentication source"
+  value       = contains(module.test.default_authentication_source_uuids, "00000000-0000-0000-0000-000000000013")
 }

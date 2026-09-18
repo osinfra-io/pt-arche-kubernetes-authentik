@@ -16,6 +16,11 @@ output "default_authentication_identification_stage_name" {
   value       = local.default_authentication_identification_stage_name
 }
 
+output "default_authentication_source_uuids" {
+  description = "The source UUIDs assigned to the default authentication identification stage when Google OAuth is enabled"
+  value       = nonsensitive(length(authentik_stage_identification.default_authentication) > 0 ? authentik_stage_identification.default_authentication[0].sources : [])
+}
+
 output "embedded_outpost_name" {
   description = "The name of the built-in embedded outpost, used by the root module's import block to bring it under management"
   value       = local.embedded_outpost_name

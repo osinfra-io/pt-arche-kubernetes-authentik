@@ -63,6 +63,8 @@ import {
 # https://registry.terraform.io/providers/goauthentik/authentik/latest/docs/data-sources/stage
 
 data "authentik_stage" "default_authentication_identification" {
+  for_each = nonsensitive(local.google_oauth_enabled) ? toset(["default"]) : toset([])
+
   name = module.test.default_authentication_identification_stage_name
 }
 
@@ -73,8 +75,10 @@ data "authentik_stage" "default_authentication_identification" {
 # into every Authentik instance, so it is imported (rather than created) to add the Google source
 # to its "sources" list without touching any of its other live settings.
 import {
-  id = data.authentik_stage.default_authentication_identification.id
-  to = module.test.authentik_stage_identification.default_authentication
+  for_each = nonsensitive(local.google_oauth_enabled) ? toset(["default"]) : toset([])
+
+  id = data.authentik_stage.default_authentication_identification[each.key].id
+  to = module.test.authentik_stage_identification.default_authentication[0]
 }
 
 output "issuer_url" {
