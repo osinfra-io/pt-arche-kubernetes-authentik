@@ -54,10 +54,18 @@ To include Google sign-in, create an OAuth 2.0 client of type **Web application*
 
 ```bash
 export TF_VAR_google_oauth_client_id="<client-id>"
-export TF_VAR_google_oauth_client_secret="<client-secret>"
+read -rsp "Google OAuth client secret: " TF_VAR_google_oauth_client_secret
+export TF_VAR_google_oauth_client_secret
+echo
 ```
 
-When enabling Google in an existing Authentik deployment, import the shared `default-authentication-identification` stage at the consumer's indexed module address and pass the UUIDs of any existing login sources through `default_authentication_source_uuids`. This one-time migration prevents OpenTofu from trying to recreate the built-in stage and preserves independently configured OAuth or SAML sources. Before later disabling Google, remove the stage address from OpenTofu state so the shared built-in object is not destroyed.
+Unset both variables after testing:
+
+```bash
+unset TF_VAR_google_oauth_client_id TF_VAR_google_oauth_client_secret
+```
+
+When enabling Google in an existing Authentik deployment, import the shared `default-authentication-identification` stage at the consumer's indexed module address. Before importing, inspect the live stage and pass every setting through `default_authentication_stage_settings`, plus the UUIDs of existing login sources through `default_authentication_source_uuids`. This one-time migration prevents OpenTofu from trying to recreate the built-in stage and preserves local-password, CAPTCHA, WebAuthn, flow-link, and independently configured OAuth or SAML behavior. Before later disabling Google, remove the stage address from OpenTofu state so the shared built-in object is not destroyed.
 
 ## 📦 Release
 

@@ -34,7 +34,21 @@ module "test" {
       host   = var.external_host
     }
   }
-  client_id                  = "development"
+  client_id = "development"
+  default_authentication_stage_settings = {
+    captcha_stage             = null
+    case_insensitive_matching = true
+    enable_remember_me        = false
+    enrollment_flow           = null
+    password_stage            = null
+    passwordless_flow         = null
+    pretend_user_exists       = true
+    recovery_flow             = null
+    show_matched_user         = true
+    show_source_labels        = false
+    user_fields               = ["email", "username"]
+    webauthn_stage            = null
+  }
   external_host              = var.external_host
   google_oauth_client_id     = var.google_oauth_client_id
   google_oauth_client_secret = var.google_oauth_client_secret

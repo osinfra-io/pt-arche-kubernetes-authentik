@@ -65,6 +65,30 @@ variable "default_authentication_source_uuids" {
   }
 }
 
+variable "default_authentication_stage_settings" {
+  default     = {}
+  description = "Complete existing configuration of the shared default authentication identification stage; inspect the live stage and override every customized value before enabling Google"
+  type = object({
+    captcha_stage             = optional(string)
+    case_insensitive_matching = optional(bool, true)
+    enable_remember_me        = optional(bool, false)
+    enrollment_flow           = optional(string)
+    password_stage            = optional(string)
+    passwordless_flow         = optional(string)
+    pretend_user_exists       = optional(bool, true)
+    recovery_flow             = optional(string)
+    show_matched_user         = optional(bool, true)
+    show_source_labels        = optional(bool, false)
+    user_fields               = optional(list(string), ["email", "username"])
+    webauthn_stage            = optional(string)
+  })
+
+  validation {
+    condition     = length(var.default_authentication_stage_settings.user_fields) > 0
+    error_message = "The default_authentication_stage_settings user_fields list must not be empty."
+  }
+}
+
 variable "external_host" {
   description = "The public URL of the protected gateway, used as the proxy provider external host"
   type        = string

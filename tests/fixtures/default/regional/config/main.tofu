@@ -28,6 +28,14 @@ module "test" {
   default_authentication_source_uuids = [
     "00000000-0000-0000-0000-000000000013",
   ]
+  default_authentication_stage_settings = {
+    case_insensitive_matching = true
+    enable_remember_me        = false
+    pretend_user_exists       = true
+    show_matched_user         = true
+    show_source_labels        = false
+    user_fields               = ["email", "username"]
+  }
   external_host              = "https://gateway.example.com"
   google_oauth_client_id     = "test-client-id"
   google_oauth_client_secret = "test-client-secret"

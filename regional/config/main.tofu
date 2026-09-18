@@ -154,17 +154,23 @@ resource "authentik_source_oauth" "google" {
 resource "authentik_stage_identification" "default_authentication" {
   count = local.google_oauth_enabled ? 1 : 0
 
+  captcha_stage             = var.default_authentication_stage_settings.captcha_stage
+  case_insensitive_matching = var.default_authentication_stage_settings.case_insensitive_matching
+  enable_remember_me        = var.default_authentication_stage_settings.enable_remember_me
+  enrollment_flow           = var.default_authentication_stage_settings.enrollment_flow
   name                      = local.default_authentication_identification_stage_name
-  case_insensitive_matching = true
-  enable_remember_me        = false
-  pretend_user_exists       = true
-  show_matched_user         = true
-  show_source_labels        = false
+  password_stage            = var.default_authentication_stage_settings.password_stage
+  passwordless_flow         = var.default_authentication_stage_settings.passwordless_flow
+  pretend_user_exists       = var.default_authentication_stage_settings.pretend_user_exists
+  recovery_flow             = var.default_authentication_stage_settings.recovery_flow
+  show_matched_user         = var.default_authentication_stage_settings.show_matched_user
+  show_source_labels        = var.default_authentication_stage_settings.show_source_labels
   sources = distinct(concat(
     var.default_authentication_source_uuids,
     [authentik_source_oauth.google[0].uuid],
   ))
-  user_fields = ["email", "username"]
+  user_fields    = var.default_authentication_stage_settings.user_fields
+  webauthn_stage = var.default_authentication_stage_settings.webauthn_stage
 }
 
 # Authentik Proxy Provider (forward-auth)
