@@ -99,7 +99,7 @@ run "default_regional" {
   }
 }
 
-run "default_regional_config" {
+run "google_enabled_regional_config" {
   command = apply
 
   module {
@@ -119,5 +119,38 @@ run "default_regional_config" {
   assert {
     condition     = output.preserved_authentication_source == true
     error_message = "The Google Authentik source should preserve existing identification-stage sources."
+  }
+
+  assert {
+    condition     = output.default_authentication_stage_managed == true
+    error_message = "The shared default authentication stage should remain managed while Google is enabled."
+  }
+}
+
+run "google_disabled_regional_config" {
+  command = apply
+
+  module {
+    source = "./tests/fixtures/default/regional/config"
+  }
+
+  variables {
+    google_oauth_client_id     = ""
+    google_oauth_client_secret = ""
+  }
+
+  assert {
+    condition     = output.google_oauth_source_enabled == false
+    error_message = "The Google Authentik source should be removed when both OAuth credential variables are cleared."
+  }
+
+  assert {
+    condition     = output.default_authentication_stage_managed == true
+    error_message = "The shared default authentication stage should remain managed after Google is disabled."
+  }
+
+  assert {
+    condition     = output.preserved_authentication_source == true
+    error_message = "Disabling Google should preserve independently managed identification-stage sources."
   }
 }

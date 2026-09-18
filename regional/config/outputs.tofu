@@ -21,6 +21,11 @@ output "default_authentication_source_uuids" {
   value       = nonsensitive(length(authentik_stage_identification.default_authentication) > 0 ? authentik_stage_identification.default_authentication[0].sources : [])
 }
 
+output "default_authentication_stage_managed" {
+  description = "Whether the shared default authentication identification stage remains under management"
+  value       = length(authentik_stage_identification.default_authentication) > 0
+}
+
 output "embedded_outpost_name" {
   description = "The name of the built-in embedded outpost, used by the root module's import block to bring it under management"
   value       = local.embedded_outpost_name

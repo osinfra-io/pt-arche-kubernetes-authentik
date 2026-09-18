@@ -66,21 +66,20 @@ variable "default_authentication_source_uuids" {
 }
 
 variable "default_authentication_stage_settings" {
-  default     = {}
-  description = "Complete existing configuration of the shared default authentication identification stage; inspect the live stage and override every customized value before enabling Google"
+  description = "Complete existing configuration of the shared default authentication identification stage, including explicit null values for unlinked stages and flows"
   type = object({
-    captcha_stage             = optional(string)
-    case_insensitive_matching = optional(bool, true)
-    enable_remember_me        = optional(bool, false)
-    enrollment_flow           = optional(string)
-    password_stage            = optional(string)
-    passwordless_flow         = optional(string)
-    pretend_user_exists       = optional(bool, true)
-    recovery_flow             = optional(string)
-    show_matched_user         = optional(bool, true)
-    show_source_labels        = optional(bool, false)
-    user_fields               = optional(list(string), ["email", "username"])
-    webauthn_stage            = optional(string)
+    captcha_stage             = string
+    case_insensitive_matching = bool
+    enable_remember_me        = bool
+    enrollment_flow           = string
+    password_stage            = string
+    passwordless_flow         = string
+    pretend_user_exists       = bool
+    recovery_flow             = string
+    show_matched_user         = bool
+    show_source_labels        = bool
+    user_fields               = list(string)
+    webauthn_stage            = string
   })
 
   validation {
@@ -116,6 +115,17 @@ variable "invalidation_flow_slug" {
   default     = "default-provider-invalidation-flow"
   description = "The slug of the Authentik invalidation flow to use for the providers"
   type        = string
+}
+
+variable "manage_default_authentication_stage" {
+  default     = false
+  description = "Whether to manage the imported shared default authentication identification stage; keep true while disabling Google, then remove the state address before setting false"
+  type        = bool
+
+  validation {
+    condition     = var.google_oauth_client_id == "" || var.google_oauth_client_secret == "" || var.manage_default_authentication_stage
+    error_message = "manage_default_authentication_stage must be true when Google OAuth credentials are configured."
+  }
 }
 
 variable "namespace" {

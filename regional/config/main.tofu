@@ -149,10 +149,10 @@ resource "authentik_source_oauth" "google" {
 # https://registry.terraform.io/providers/goauthentik/authentik/latest/docs/resources/stage_identification
 
 # The default authentication flow's identification stage is a pre-existing, shared object.
-# Consumers import it only when Google is enabled and pass any independently managed source UUIDs
-# so adding Google preserves the complete source list.
+# Consumers import it while management is enabled and pass any independently managed source UUIDs
+# so adding or removing Google preserves the stage and its complete source list.
 resource "authentik_stage_identification" "default_authentication" {
-  count = local.google_oauth_enabled ? 1 : 0
+  count = var.manage_default_authentication_stage ? 1 : 0
 
   captcha_stage             = var.default_authentication_stage_settings.captcha_stage
   case_insensitive_matching = var.default_authentication_stage_settings.case_insensitive_matching
@@ -167,7 +167,7 @@ resource "authentik_stage_identification" "default_authentication" {
   show_source_labels        = var.default_authentication_stage_settings.show_source_labels
   sources = distinct(concat(
     var.default_authentication_source_uuids,
-    [authentik_source_oauth.google[0].uuid],
+    local.google_oauth_enabled ? [authentik_source_oauth.google[0].uuid] : [],
   ))
   user_fields    = var.default_authentication_stage_settings.user_fields
   webauthn_stage = var.default_authentication_stage_settings.webauthn_stage

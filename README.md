@@ -65,7 +65,9 @@ Unset both variables after testing:
 unset TF_VAR_google_oauth_client_id TF_VAR_google_oauth_client_secret
 ```
 
-When enabling Google in an existing Authentik deployment, import the shared `default-authentication-identification` stage at the consumer's indexed module address. Before importing, inspect the live stage and pass every setting through `default_authentication_stage_settings`, plus the UUIDs of existing login sources through `default_authentication_source_uuids`. This one-time migration prevents OpenTofu from trying to recreate the built-in stage and preserves local-password, CAPTCHA, WebAuthn, flow-link, and independently configured OAuth or SAML behavior. Before later disabling Google, remove the stage address from OpenTofu state so the shared built-in object is not destroyed.
+When enabling Google in an existing Authentik deployment, import the shared `default-authentication-identification` stage at the consumer's indexed module address and set `manage_default_authentication_stage = true`. Before importing, inspect the live stage and pass every setting through `default_authentication_stage_settings`, including explicit `null` values for unlinked stages and flows, plus the UUIDs of existing login sources through `default_authentication_source_uuids`. This one-time migration prevents OpenTofu from trying to recreate the built-in stage and preserves local-password, CAPTCHA, WebAuthn, flow-link, and independently configured OAuth or SAML behavior.
+
+To disable Google safely, keep `manage_default_authentication_stage = true`, clear the Google credentials, and apply once. This removes only Google from the stage's `sources` while retaining the shared stage. Either leave the stage managed, or run `tofu state rm 'module.<name>.authentik_stage_identification.default_authentication[0]'` before setting `manage_default_authentication_stage = false`.
 
 ## 📦 Release
 
