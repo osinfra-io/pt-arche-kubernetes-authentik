@@ -25,9 +25,10 @@ provider "authentik" {
 module "test" {
   source = "../../../../regional/config"
 
-  application_name = "Development"
-  application_slug = "development-oidc"
-  authentik_url    = var.authentik_url
+  application_launch_url = "https://dev.localhost/istio-test/auth"
+  application_name       = "Development"
+  application_slug       = "development-oidc"
+  authentik_url          = var.authentik_url
   browser_group_policy_bindings = {
     development = {
       groups = ["all"]

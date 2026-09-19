@@ -14,6 +14,7 @@ locals {
 # https://registry.terraform.io/providers/goauthentik/authentik/latest/docs/resources/application
 
 resource "authentik_application" "gateway" {
+  meta_launch_url   = var.application_launch_url
   name              = var.application_name
   protocol_provider = authentik_provider_oauth2.gateway.id
   slug              = var.application_slug

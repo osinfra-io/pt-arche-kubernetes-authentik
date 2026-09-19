@@ -7,6 +7,13 @@ variable "application_name" {
   type        = string
 }
 
+variable "application_launch_url" {
+  default     = null
+  description = "Optional URL shown as the launch link for the Authentik application"
+  nullable    = true
+  type        = string
+}
+
 variable "application_slug" {
   default     = "gateway"
   description = "The slug of the Authentik application, used in the OIDC issuer URL"
