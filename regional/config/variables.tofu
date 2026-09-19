@@ -54,6 +54,40 @@ variable "client_id" {
   type        = string
 }
 
+variable "default_authentication_source_uuids" {
+  default     = []
+  description = "UUIDs of existing sources assigned to the shared default authentication identification stage; preserved when the optional Google source is added"
+  type        = list(string)
+
+  validation {
+    condition     = length(distinct(var.default_authentication_source_uuids)) == length(var.default_authentication_source_uuids)
+    error_message = "The default_authentication_source_uuids list must not contain duplicates."
+  }
+}
+
+variable "default_authentication_stage_settings" {
+  description = "Complete existing configuration of the shared default authentication identification stage, including explicit null values for unlinked stages and flows"
+  type = object({
+    captcha_stage             = string
+    case_insensitive_matching = bool
+    enable_remember_me        = bool
+    enrollment_flow           = string
+    password_stage            = string
+    passwordless_flow         = string
+    pretend_user_exists       = bool
+    recovery_flow             = string
+    show_matched_user         = bool
+    show_source_labels        = bool
+    user_fields               = list(string)
+    webauthn_stage            = string
+  })
+
+  validation {
+    condition     = length(var.default_authentication_stage_settings.user_fields) > 0
+    error_message = "The default_authentication_stage_settings user_fields list must not be empty."
+  }
+}
+
 variable "external_host" {
   description = "The public URL of the protected gateway, used as the proxy provider external host"
   type        = string
@@ -64,10 +98,34 @@ variable "external_host" {
   }
 }
 
+variable "google_oauth_client_id" {
+  default     = ""
+  description = "The OAuth client ID for the optional Google source in Authentik; leave empty to disable the source."
+  type        = string
+}
+
+variable "google_oauth_client_secret" {
+  default     = ""
+  description = "The OAuth client secret for the optional Google source in Authentik; leave empty to disable the source."
+  sensitive   = true
+  type        = string
+}
+
 variable "invalidation_flow_slug" {
   default     = "default-provider-invalidation-flow"
   description = "The slug of the Authentik invalidation flow to use for the providers"
   type        = string
+}
+
+variable "manage_default_authentication_stage" {
+  default     = false
+  description = "Whether to manage the imported shared default authentication identification stage; keep true while disabling Google, then remove the state address before setting false"
+  type        = bool
+
+  validation {
+    condition     = var.google_oauth_client_id == "" || var.google_oauth_client_secret == "" || var.manage_default_authentication_stage
+    error_message = "manage_default_authentication_stage must be true when Google OAuth credentials are configured."
+  }
 }
 
 variable "namespace" {
@@ -75,13 +133,30 @@ variable "namespace" {
   type        = string
 }
 
+variable "outpost_authentik_url" {
+  default     = null
+  description = "The browser-accessible Authentik base URL used by the embedded outpost; defaults to authentik_url"
+  nullable    = true
+  type        = string
+
+  validation {
+    condition = var.outpost_authentik_url == null ? true : anytrue([
+      startswith(var.outpost_authentik_url, "https://"),
+      startswith(var.outpost_authentik_url, "http://localhost:"),
+      startswith(var.outpost_authentik_url, "http://127.0.0.1:"),
+    ])
+    error_message = "The outpost_authentik_url must use HTTPS, except for local development URLs on localhost or 127.0.0.1."
+  }
+}
+
 variable "redirect_uris" {
   default     = []
   description = "The list of allowed OAuth2 redirect URIs for the gateway OIDC provider"
 
   type = list(object({
-    matching_mode = string
-    url           = string
+    matching_mode     = string
+    redirect_uri_type = optional(string, "authorization")
+    url               = string
   }))
 }
 

@@ -44,35 +44,30 @@ tofu init
 tofu test
 ```
 
-You can also run a **Docker integration test** for `regional/config` against a local Authentik instance. Two modes are available depending on whether you want resources to persist for inspection.
+For the Docker integration test and full Istio browser-authentication flow, install the [`platform-grouping` plugin](https://github.com/osinfra-io/pt-ai-plugins/tree/main/plugins/platform-grouping) and ask Copilot CLI to use the `test-istio-authentik-locally` skill. The skill discovers the related repositories, starts and validates both fixtures, diagnoses failures, supports optional Google OAuth testing, and performs cleanup when requested.
 
-**Full cycle** — creates resources, runs assertions, then destroys everything:
-
-```none
-docker compose -f tests/docker/compose.yml up -d
-./tests/docker/wait-for-authentik.sh
-tofu -chdir=tests/docker/regional/config init
-tofu -chdir=tests/docker/regional/config test -filter=regional-config-live.tftest.hcl
-docker compose -f tests/docker/compose.yml down -v
+```text
+Use the test-istio-authentik-locally skill to test this checkout.
 ```
 
-**Apply and inspect** — creates resources and leaves them running for manual inspection:
+To include Google sign-in, create an OAuth 2.0 client of type **Web application** under **Google Cloud Console → APIs & Services → Credentials**. Add `http://localhost:9000/source/oauth/callback/google/` as an authorized redirect URI, then export its credentials before invoking the skill:
 
-```none
-docker compose --env-file tests/docker/.env -f tests/docker/compose.yml up -d
-./tests/docker/wait-for-authentik.sh
-tofu -chdir=tests/docker/regional/config init
-tofu -chdir=tests/docker/regional/config apply
+```bash
+export TF_VAR_google_oauth_client_id="<client-id>"
+read -rsp "Google OAuth client secret: " TF_VAR_google_oauth_client_secret
+export TF_VAR_google_oauth_client_secret
+echo
 ```
 
-When you're done, tear down:
+Unset both variables after testing:
 
-```none
-tofu -chdir=tests/docker/regional/config destroy
-docker compose -f tests/docker/compose.yml down -v
+```bash
+unset TF_VAR_google_oauth_client_id TF_VAR_google_oauth_client_secret
 ```
 
-The Docker fixture uses the bootstrap API token from the committed `tests/docker/.env` defaults. The Authentik UI is available at `http://localhost:9000` (login: `akadmin` / `not-a-secret`).
+When enabling Google in an existing Authentik deployment, import the shared `default-authentication-identification` stage at the consumer's indexed module address and set `manage_default_authentication_stage = true`. Before importing, inspect the live stage and pass every setting through `default_authentication_stage_settings`, including explicit `null` values for unlinked stages and flows, plus the UUIDs of existing login sources through `default_authentication_source_uuids`. This one-time migration prevents OpenTofu from trying to recreate the built-in stage and preserves local-password, CAPTCHA, WebAuthn, flow-link, and independently configured OAuth or SAML behavior.
+
+To disable Google safely, keep `manage_default_authentication_stage = true`, clear the Google credentials, and apply once. This removes only Google from the stage's `sources` while retaining the shared stage. Either leave the stage managed, or run `tofu state rm 'module.<name>.authentik_stage_identification.default_authentication[0]'` before setting `manage_default_authentication_stage = false`.
 
 ## 📦 Release
 
