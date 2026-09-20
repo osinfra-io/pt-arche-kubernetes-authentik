@@ -89,9 +89,9 @@ resource "authentik_brand" "development" {
       --pf-global--primary-color--200: #e6a200;
       --pf-c-form-control--BackgroundColor: #2b2b2b;
       --pf-c-form-control--after--BorderBottomColor: #484848;
-      --pf-c-form-control--focus--after--BorderBottomColor: #606060;
-      --pf-c-form-control--hover--after--BorderBottomColor: #606060;
-      --pf-c-form-control--m-expanded--after--BorderBottomColor: #606060;
+      --pf-c-form-control--focus--after--BorderBottomColor: #7a7a7a;
+      --pf-c-form-control--hover--after--BorderBottomColor: #7a7a7a;
+      --pf-c-form-control--m-expanded--after--BorderBottomColor: #7a7a7a;
     }
 
     ::selection {
@@ -124,9 +124,9 @@ resource "authentik_brand" "development" {
     select:focus,
     select:focus-visible {
       background-color: #303030 !important;
-      border-color: #606060 !important;
-      box-shadow: inset 0 -2px 0 #606060 !important;
-      outline-color: #606060 !important;
+      border-color: #7a7a7a !important;
+      box-shadow: inset 0 -2px 0 #7a7a7a !important;
+      outline-color: #7a7a7a !important;
     }
 
     input:autofill,
