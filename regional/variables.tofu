@@ -2,7 +2,7 @@
 # https://opentofu.org/docs/language/values/variables
 
 variable "authentik_version" {
-  default     = "2026.5.6"
+  default     = "2026.8.3"
   description = "The Authentik Helm chart and application version to install"
   type        = string
 }
