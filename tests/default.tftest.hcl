@@ -59,6 +59,12 @@ mock_provider "authentik" {
     }
   }
 
+  mock_resource "authentik_property_mapping_source_oauth" {
+    defaults = {
+      id = 12
+    }
+  }
+
   mock_resource "authentik_source_oauth" {
     defaults = {
       id   = 6
@@ -72,23 +78,18 @@ mock_provider "authentik" {
     }
   }
 
+  mock_resource "authentik_stage_user_login" {
+    defaults = {
+      id = 11
+    }
+  }
+
   mock_resource "authentik_stage_user_write" {
     defaults = {
       id = 9
     }
   }
 
-  mock_resource "authentik_stage_prompt" {
-    defaults = {
-      id = 11
-    }
-  }
-
-  mock_resource "authentik_stage_prompt_field" {
-    defaults = {
-      id = 12
-    }
-  }
 }
 
 run "default_regional" {

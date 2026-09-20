@@ -54,7 +54,7 @@ resource "authentik_provider_oauth2" "gateway" {
 # Authentik Flow
 # https://registry.terraform.io/providers/goauthentik/authentik/latest/docs/resources/flow
 
-# Dedicated enrollment flow for the Google source, kept separate from
+# Dedicated prompt-free enrollment flow for the Google source, kept separate from
 # default-source-enrollment so JIT-created Google users always land in
 # authentik_group.all, without changing the enrollment behavior of any other source.
 resource "authentik_flow" "google_enrollment" {
@@ -66,34 +66,13 @@ resource "authentik_flow" "google_enrollment" {
   designation = "enrollment"
 }
 
-# Authentik Stage Prompt Field
-# https://registry.terraform.io/providers/goauthentik/authentik/latest/docs/resources/stage_prompt_field
+# Authentik Stage User Login
+# https://registry.terraform.io/providers/goauthentik/authentik/latest/docs/resources/stage_user_login
 
-# Google doesn't return a username, only email and name, so JIT enrollment
-# forces the username to the Google account's email address as a read-only
-# field, matching the platform's existing user_email sub_mode for the gateway.
-resource "authentik_stage_prompt_field" "google_enrollment_username" {
+resource "authentik_stage_user_login" "google_enrollment" {
   count = local.google_oauth_enabled ? 1 : 0
 
-  field_key                = "username"
-  initial_value            = "return prompt_context['email']"
-  initial_value_expression = true
-  label                    = "Username"
-  name                     = "Google Source Enrollment - Username"
-  order                    = 0
-  type                     = "text_read_only"
-}
-
-# Authentik Stage Prompt
-# https://registry.terraform.io/providers/goauthentik/authentik/latest/docs/resources/stage_prompt
-
-resource "authentik_stage_prompt" "google_enrollment_username" {
-  count = local.google_oauth_enabled ? 1 : 0
-
-  fields = [
-    authentik_stage_prompt_field.google_enrollment_username[0].id,
-  ]
-  name = "Google Source Enrollment - Username Prompt"
+  name = "Google Source Enrollment - User Login"
 }
 
 # Authentik Stage User Write
@@ -111,20 +90,32 @@ resource "authentik_stage_user_write" "google_enrollment" {
 # Authentik Flow Stage Binding
 # https://registry.terraform.io/providers/goauthentik/authentik/latest/docs/resources/flow_stage_binding
 
-resource "authentik_flow_stage_binding" "google_enrollment_username" {
-  count = local.google_oauth_enabled ? 1 : 0
-
-  order  = 0
-  stage  = authentik_stage_prompt.google_enrollment_username[0].id
-  target = authentik_flow.google_enrollment[0].uuid
-}
-
 resource "authentik_flow_stage_binding" "google_enrollment" {
   count = local.google_oauth_enabled ? 1 : 0
 
-  order  = 1
+  order  = 0
   stage  = authentik_stage_user_write.google_enrollment[0].id
   target = authentik_flow.google_enrollment[0].uuid
+}
+
+resource "authentik_flow_stage_binding" "google_enrollment_login" {
+  count = local.google_oauth_enabled ? 1 : 0
+
+  order  = 1
+  stage  = authentik_stage_user_login.google_enrollment[0].id
+  target = authentik_flow.google_enrollment[0].uuid
+}
+
+# Authentik OAuth Source Property Mapping
+# https://registry.terraform.io/providers/goauthentik/authentik/latest/docs/resources/property_mapping_source_oauth
+
+resource "authentik_property_mapping_source_oauth" "google_username" {
+  count = local.google_oauth_enabled ? 1 : 0
+
+  expression = <<-EOT
+    return {"username": info.get("email")}
+  EOT
+  name       = "Google - email as username"
 }
 
 # Authentik Google OAuth Source
@@ -142,8 +133,13 @@ resource "authentik_source_oauth" "google" {
   name                = "Google"
   oidc_jwks_url       = "https://www.googleapis.com/oauth2/v3/certs"
   profile_url         = "https://openidconnect.googleapis.com/v1/userinfo"
-  provider_type       = "google"
-  slug                = "google"
+
+  property_mappings = [
+    authentik_property_mapping_source_oauth.google_username[0].id,
+  ]
+
+  provider_type = "google"
+  slug          = "google"
 }
 
 # Authentik Stage
