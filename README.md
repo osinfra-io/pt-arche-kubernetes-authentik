@@ -4,7 +4,7 @@
 
 ## Repository Description
 
-OpenTofu child module that deploys [Authentik](https://goauthentik.io) on Google Kubernetes Engine via the official Helm chart and configures it as the centralized gateway identity provider for the platform.
+Reusable OpenTofu child module that deploys [Authentik](https://goauthentik.io) on Google Kubernetes Engine via the official Helm chart and configures it as the centralized gateway identity provider for the platform.
 
 A single Authentik deployment provides **both** layers required by the centralized Gateway auth initiative ([osinfra-io/pt-pneuma#142](https://github.com/osinfra-io/pt-pneuma/issues/142)):
 
@@ -15,10 +15,19 @@ The Authentik server and worker are stateless — all state lives in an external
 
 ## 🔩 Usage
 
+### Module interfaces
+
+| Source path | Purpose | Interface |
+| --- | --- | --- |
+| `//regional` | Deploys stateless Authentik server and worker pods with Cloud SQL Auth Proxy sidecars and an existing Kubernetes Secret. | [`regional/variables.tofu`](regional/variables.tofu) · [`regional/outputs.tofu`](regional/outputs.tofu) |
+| `//regional/config` | Configures gateway/browser applications, OIDC and proxy providers, scope mappings, policy bindings, optional Google OAuth, and the embedded outpost. | [`regional/config/variables.tofu`](regional/config/variables.tofu) · [`regional/config/outputs.tofu`](regional/config/outputs.tofu) |
+
+The repository root is not a consumable module. `//regional` requires an external PostgreSQL database, Workload Identity for the Cloud SQL Auth Proxy, and a pre-existing Secret containing Authentik bootstrap and database credentials; no Redis or in-cluster PostgreSQL is deployed. It defaults to two server replicas and one worker replica. `//regional/config` requires public HTTPS URLs and leaves Google OAuth disabled by default. Managing Google OAuth against an existing deployment requires importing the shared default identification stage exactly as described below. Authentik, Cloud SQL, replicas, and load-balancing traffic incur ongoing cost; protect bootstrap tokens, database passwords, OAuth secrets, and provider tokens as secrets.
+
 > [!TIP]
 > You can check the [tests/fixtures](tests/fixtures) directory for example configurations.
 
-This module is consumed from a regional workspace via the `//regional` sub-path. The Helm release runs first, then the `goauthentik/authentik` provider configures the OIDC provider, application, proxy (forward-auth) provider, `roles`/`groups` scope mappings, and the embedded outpost.
+The Helm release should run before the `goauthentik/authentik` provider configures the OIDC provider, application, proxy provider, scope mappings, and embedded outpost.
 
 ## 🛠️ Tools
 
