@@ -11,6 +11,53 @@
 # https://cloud.google.com/sql/docs/postgres/connect-auth-proxy
 
 locals {
+  # The chart ships resources: {} for both the server and the worker, so every value here is the
+  # module's own. Limits are omitted entirely when null rather than rendered as an empty map, and
+  # each limit is independent, so memory can be capped without also capping CPU.
+  resource_specs = {
+    cloud_sql_proxy = {
+      limits_cpu      = var.cloud_sql_proxy_resources_limits_cpu
+      limits_memory   = var.cloud_sql_proxy_resources_limits_memory
+      requests_cpu    = var.cloud_sql_proxy_resources_requests_cpu
+      requests_memory = var.cloud_sql_proxy_resources_requests_memory
+    }
+
+    server = {
+      limits_cpu      = var.server_resources_limits_cpu
+      limits_memory   = var.server_resources_limits_memory
+      requests_cpu    = var.server_resources_requests_cpu
+      requests_memory = var.server_resources_requests_memory
+    }
+
+    worker = {
+      limits_cpu      = var.worker_resources_limits_cpu
+      limits_memory   = var.worker_resources_limits_memory
+      requests_cpu    = var.worker_resources_requests_cpu
+      requests_memory = var.worker_resources_requests_memory
+    }
+  }
+
+  resource_limits = {
+    for name, spec in local.resource_specs : name => {
+      for key, value in {
+        cpu    = spec.limits_cpu
+        memory = spec.limits_memory
+      } : key => value if value != null
+    }
+  }
+
+  resources = {
+    for name, spec in local.resource_specs : name => merge(
+      {
+        requests = {
+          cpu    = spec.requests_cpu
+          memory = spec.requests_memory
+        }
+      },
+      length(local.resource_limits[name]) > 0 ? { limits = local.resource_limits[name] } : {}
+    )
+  }
+
   # The chart creates and annotates a service account whose name comes from the authentik.fullname
   # template, which resolves to "authentik" because the Helm release name matches the chart name.
   # The server and worker pods only adopt it when server.serviceAccountName and
@@ -29,16 +76,7 @@ locals {
       var.cloud_sql_connection_name,
     ]
 
-    resources = {
-      limits = {
-        memory = "128Mi"
-      }
-
-      requests = {
-        cpu    = "50m"
-        memory = "64Mi"
-      }
-    }
+    resources = local.resources["cloud_sql_proxy"]
 
     securityContext = {
       runAsNonRoot = true
@@ -84,16 +122,7 @@ locals {
 
       replicas = var.server_replicas
 
-      resources = {
-        limits = {
-          memory = var.server_resources_limits_memory
-        }
-
-        requests = {
-          cpu    = var.server_resources_requests_cpu
-          memory = var.server_resources_requests_memory
-        }
-      }
+      resources = local.resources["server"]
 
       serviceAccountName = local.service_account_name
     }
@@ -109,16 +138,7 @@ locals {
 
       replicas = var.worker_replicas
 
-      resources = {
-        limits = {
-          memory = var.worker_resources_limits_memory
-        }
-
-        requests = {
-          cpu    = var.worker_resources_requests_cpu
-          memory = var.worker_resources_requests_memory
-        }
-      }
+      resources = local.resources["worker"]
 
       serviceAccountName = local.service_account_name
     }
