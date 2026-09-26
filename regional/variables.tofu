@@ -123,6 +123,12 @@ variable "worker_replicas" {
   type        = number
 }
 
+variable "worker_probe_timeout_seconds" {
+  default     = 3
+  description = "The timeout in seconds for Authentik worker liveness, readiness, and startup probes"
+  type        = number
+}
+
 variable "worker_resources_limits_cpu" {
   default     = null
   description = "The CPU limit for the Authentik worker, unset by default so background task processing is never throttled"

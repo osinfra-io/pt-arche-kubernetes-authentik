@@ -136,9 +136,21 @@ locals {
     worker = {
       extraContainers = [local.cloud_sql_proxy_container]
 
+      livenessProbe = {
+        timeoutSeconds = var.worker_probe_timeout_seconds
+      }
+
+      readinessProbe = {
+        timeoutSeconds = var.worker_probe_timeout_seconds
+      }
+
       replicas = var.worker_replicas
 
       resources = local.resources["worker"]
+
+      startupProbe = {
+        timeoutSeconds = var.worker_probe_timeout_seconds
+      }
 
       serviceAccountName = local.service_account_name
     }
