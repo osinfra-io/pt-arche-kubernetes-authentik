@@ -59,7 +59,7 @@ For the Docker integration test and full Istio browser-authentication flow, inst
 Use the test-istio-authentik-locally skill to test this checkout.
 ```
 
-To include Google sign-in, export the Google OAuth client credentials before invoking the skill. The client must allow the redirect URI `https://localhost/source/oauth/callback/google/`:
+For Google sign-in, set the credentials used by the local test:
 
 ```bash
 export TF_VAR_google_oauth_client_id="<client-id>"
