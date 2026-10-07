@@ -30,6 +30,10 @@ module "test" {
   application_slug       = "development-oidc"
   authentik_url          = var.authentik_url
   browser_group_policy_bindings = {
+    agentgateway = {
+      groups = ["all"]
+      host   = "https://agentgateway.localhost"
+    }
     development = {
       groups = ["all"]
       host   = var.external_host
