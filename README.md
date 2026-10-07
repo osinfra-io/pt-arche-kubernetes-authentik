@@ -59,7 +59,7 @@ For the Docker integration test and full Istio browser-authentication flow, inst
 Use the test-istio-authentik-locally skill to test this checkout.
 ```
 
-To include Google sign-in, create an OAuth 2.0 client of type **Web application** under **Google Cloud Console → APIs & Services → Credentials**. Add `https://authentik.localhost/source/oauth/callback/google/` as an authorized redirect URI (the Istio fixture serves Authentik at `https://authentik.localhost` through its gateway, mirroring `authentik.<env>.osinfra.io` in the platform), then export its credentials before invoking the skill:
+To include Google sign-in, create an OAuth 2.0 client of type **Web application** under **Google Cloud Console → APIs & Services → Credentials**. Add `https://localhost/source/oauth/callback/google/` as an authorized redirect URI. The Istio fixture serves Authentik at `https://authentik.localhost` through its gateway, mirroring `authentik.<env>.osinfra.io` in the platform; Google rejects `.localhost` subdomains, so the gateway presents the Google sign-in paths as `localhost` and redirects the callback back to `authentik.localhost`. Then export its credentials before invoking the skill:
 
 ```bash
 export TF_VAR_google_oauth_client_id="<client-id>"
