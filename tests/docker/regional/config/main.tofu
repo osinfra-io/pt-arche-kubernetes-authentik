@@ -30,6 +30,10 @@ module "test" {
   application_slug       = "development-oidc"
   authentik_url          = var.authentik_url
   browser_group_policy_bindings = {
+    agentgateway = {
+      groups = ["all"]
+      host   = "https://agentgateway.localhost"
+    }
     development = {
       groups = ["all"]
       host   = var.external_host
@@ -55,7 +59,7 @@ module "test" {
   google_oauth_client_secret          = var.google_oauth_client_secret
   manage_default_authentication_stage = true
   namespace                           = var.namespace
-  outpost_authentik_url               = "http://localhost:9000"
+  outpost_authentik_url               = "https://authentik.localhost"
 
   redirect_uris = [
     {
@@ -167,7 +171,7 @@ resource "authentik_brand" "development" {
   branding_logo       = "https://docs.osinfra.io/img/osinfra-logo-full.png"
   branding_title      = "osinfra.io | Development"
   default             = false
-  domain              = "localhost:9000"
+  domain              = "authentik.localhost"
 }
 
 # Authentik Outpost (import)
