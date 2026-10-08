@@ -53,10 +53,10 @@ tofu init
 tofu test
 ```
 
-For the Docker integration test and full Istio browser-authentication flow, install the [`platform-grouping` plugin](https://github.com/osinfra-io/pt-ai-plugins/tree/main/plugins/platform-grouping) and ask Copilot CLI to use the `test-istio-authentik-locally` skill. The skill discovers the related repositories, starts and validates both fixtures, diagnoses failures, supports optional Google OAuth testing, and performs cleanup when requested.
+For the Docker integration test and full Istio browser-authentication flow, install the [`platform-grouping` plugin](https://github.com/osinfra-io/pt-ai-plugins/tree/main/plugins/platform-grouping) and ask Copilot CLI to use the `test-local-gateway-stack` skill. The skill discovers the related repositories, starts and validates both fixtures, diagnoses failures, supports optional Google OAuth testing, and performs cleanup when requested.
 
 ```text
-Use the test-istio-authentik-locally skill to test this checkout.
+Use the test-local-gateway-stack skill to test this checkout.
 ```
 
 For Google sign-in, set the credentials used by the local test:
