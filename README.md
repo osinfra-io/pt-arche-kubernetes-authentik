@@ -36,6 +36,8 @@ The Helm release should run before the `goauthentik/authentik` provider configur
 
 ## 📋 Skills and Knowledge
 
+Links to documentation and other resources required to develop and iterate in this repository successfully.
+
 - [Authentik documentation](https://docs.goauthentik.io)
 - [Authentik Helm chart](https://github.com/goauthentik/helm)
 - [goauthentik/authentik Terraform provider](https://registry.terraform.io/providers/goauthentik/authentik/latest/docs)
@@ -43,7 +45,7 @@ The Helm release should run before the `goauthentik/authentik` provider configur
 
 ## 🔍 Tests
 
-The default test suite is [mocked](https://opentofu.org/docs/cli/commands/test/#the-mock_provider-blocks), allowing CI-safe validation without infrastructure or credentials.
+All tests are [mocked](https://opentofu.org/docs/cli/commands/test/#the-mock_provider-blocks) allowing us to test the module without creating infrastructure or requiring credentials. The trade-offs are acceptable in favor of speed and simplicity. In an OpenTofu test, a mocked provider or resource will generate fake data for all computed attributes that would normally be provided by the underlying provider APIs.
 
 ```none
 tofu init
