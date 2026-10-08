@@ -51,7 +51,7 @@ tofu test
 Run this command in Copilot CLI with the [`platform-grouping` plugin](https://github.com/osinfra-io/pt-ai-plugins/tree/main/plugins/platform-grouping) installed:
 
 ```text
-/platform-grouping:test-istio-authentik-locally
+/platform-grouping:test-local-gateway-stack
 ```
 
 ### Existing deployment: Google OAuth migration
