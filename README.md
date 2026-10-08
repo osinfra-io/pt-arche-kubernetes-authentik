@@ -48,10 +48,10 @@ tofu test
 
 ### Local browser authentication
 
-Use the `test-local-gateway-stack` skill from the [`platform-grouping` plugin](https://github.com/osinfra-io/pt-ai-plugins/tree/main/plugins/platform-grouping) for setup, browser-authentication checks, optional Google OAuth credentials, diagnostics, and teardown:
+Run this command in Copilot CLI with the [`platform-grouping` plugin](https://github.com/osinfra-io/pt-ai-plugins/tree/main/plugins/platform-grouping) installed:
 
 ```text
-Use the test-local-gateway-stack skill to test this checkout.
+/platform-grouping:test-istio-authentik-locally
 ```
 
 ### Existing deployment: Google OAuth migration
