@@ -15,7 +15,7 @@ The Authentik server and worker are stateless — all state lives in an external
 
 ## 🔩 Usage
 
-Provide external PostgreSQL, Workload Identity for Cloud SQL Auth Proxy, and an existing Secret containing bootstrap and database credentials. Deploy `//regional` before `//regional/config`, which requires public HTTPS URLs. Protect credentials and provider tokens; follow the migration instructions below when enabling Google OAuth on an existing deployment. The repository root is not a consumable module.
+Provide external PostgreSQL and an existing Secret containing bootstrap and database credentials. Cloud SQL connections require Workload Identity for the Auth Proxy; a directly reachable PostgreSQL host omits the proxy. Deploy `//regional` before `//regional/config`, which requires public HTTPS URLs. Protect credentials and provider tokens; follow the migration instructions below when enabling Google OAuth on an existing deployment. The repository root is not a consumable module.
 
 > [!TIP]
 > You can check the [tests/fixtures](tests/fixtures) directory for example configurations. These fixtures set up the system for testing by providing all the necessary initial code, thus creating good examples on which to base your configurations.
@@ -36,7 +36,7 @@ Links to documentation and other resources required to develop and iterate in th
 
 ## 🔍 Tests
 
-All tests are [mocked](https://opentofu.org/docs/cli/commands/test/#the-mock_provider-blocks) allowing us to test the module without creating infrastructure or requiring credentials. The trade-offs are acceptable in favor of speed and simplicity. In an OpenTofu test, a mocked provider or resource will generate fake data for all computed attributes that would normally be provided by the underlying provider APIs.
+All OpenTofu tests are [mocked](https://opentofu.org/docs/cli/commands/test/#the-mock_provider-blocks) allowing us to test the module without creating infrastructure or requiring credentials. The trade-offs are acceptable in favor of speed and simplicity. In an OpenTofu test, a mocked provider or resource will generate fake data for all computed attributes that would normally be provided by the underlying provider APIs.
 
 ```none
 tofu init
@@ -53,6 +53,8 @@ Run this command in Copilot CLI with the [`platform-grouping` plugin](https://gi
 ```text
 /platform-grouping:test-local-gateway-stack
 ```
+
+Local integration testing is opt-in for complex configuration changes and separate from the mocked tests. Its Kubernetes fixtures are in `tests/kubernetes`; full verification requires real Google sign-in.
 
 ### Existing deployment: Google OAuth migration
 

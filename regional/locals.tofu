@@ -11,6 +11,8 @@
 # https://cloud.google.com/sql/docs/postgres/connect-auth-proxy
 
 locals {
+  extra_containers = var.cloud_sql_connection_name == null ? [] : [local.cloud_sql_proxy_container]
+
   # The chart ships resources: {} for both the server and the worker, so every value here is the
   # module's own. Limits are omitted entirely when null rather than rendered as an empty map, and
   # each limit is independent, so memory can be capped without also capping CPU.
@@ -58,6 +60,10 @@ locals {
     )
   }
 
+  service_account_annotations = var.google_service_account_email == null ? {} : {
+    "iam.gke.io/gcp-service-account" = var.google_service_account_email
+  }
+
   # The chart creates and annotates a service account whose name comes from the authentik.fullname
   # template, which resolves to "authentik" because the Helm release name matches the chart name.
   # The server and worker pods only adopt it when server.serviceAccountName and
@@ -86,7 +92,7 @@ locals {
   helm_values = yamlencode({
     authentik = {
       postgresql = {
-        host    = "127.0.0.1"
+        host    = var.external_database_host
         name    = var.external_database_name
         port    = var.external_database_port
         sslmode = "disable"
@@ -118,7 +124,7 @@ locals {
     }
 
     server = {
-      extraContainers = [local.cloud_sql_proxy_container]
+      extraContainers = local.extra_containers
 
       replicas = var.server_replicas
 
@@ -128,13 +134,11 @@ locals {
     }
 
     serviceAccount = {
-      annotations = {
-        "iam.gke.io/gcp-service-account" = var.google_service_account_email
-      }
+      annotations = local.service_account_annotations
     }
 
     worker = {
-      extraContainers = [local.cloud_sql_proxy_container]
+      extraContainers = local.extra_containers
 
       replicas = var.worker_replicas
 
