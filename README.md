@@ -25,7 +25,7 @@ The Authentik server and worker are stateless — all state lives in an external
 The repository root is not a consumable module. `//regional` requires an external PostgreSQL database, Workload Identity for the Cloud SQL Auth Proxy, and a pre-existing Secret containing Authentik bootstrap and database credentials; no Redis or in-cluster PostgreSQL is deployed. It defaults to two server replicas and one worker replica. `//regional/config` requires public HTTPS URLs and leaves Google OAuth disabled by default. Managing Google OAuth against an existing deployment requires importing the shared default identification stage exactly as described below. Authentik, Cloud SQL, replicas, and load-balancing traffic incur ongoing cost; protect bootstrap tokens, database passwords, OAuth secrets, and provider tokens as secrets.
 
 > [!TIP]
-> See [tests/fixtures](tests/fixtures) for example configurations.
+> You can check the [tests/fixtures](tests/fixtures) directory for example configurations. These fixtures set up the system for testing by providing all the necessary initial code, thus creating good examples on which to base your configurations.
 
 The Helm release should run before the `goauthentik/authentik` provider configures the OIDC provider, application, proxy provider, scope mappings, and embedded outpost.
 
