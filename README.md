@@ -6,7 +6,7 @@
 
 Reusable OpenTofu child module that deploys [Authentik](https://goauthentik.io) on Google Kubernetes Engine via the official Helm chart and configures it as the centralized gateway identity provider for the platform.
 
-A single Authentik deployment provides **both** layers required by the centralized Gateway auth initiative ([osinfra-io/pt-pneuma#142](https://github.com/osinfra-io/pt-pneuma/issues/142)):
+A single Authentik deployment provides both gateway authentication layers:
 
 - an **OIDC identity provider** used by Istio `RequestAuthentication` for JWT validation, and
 - an **embedded outpost** (Proxy Provider, forward-auth mode) used as the Istio `ext_authz` check endpoint.
@@ -25,7 +25,7 @@ The Authentik server and worker are stateless — all state lives in an external
 The repository root is not a consumable module. `//regional` requires an external PostgreSQL database, Workload Identity for the Cloud SQL Auth Proxy, and a pre-existing Secret containing Authentik bootstrap and database credentials; no Redis or in-cluster PostgreSQL is deployed. It defaults to two server replicas and one worker replica. `//regional/config` requires public HTTPS URLs and leaves Google OAuth disabled by default. Managing Google OAuth against an existing deployment requires importing the shared default identification stage exactly as described below. Authentik, Cloud SQL, replicas, and load-balancing traffic incur ongoing cost; protect bootstrap tokens, database passwords, OAuth secrets, and provider tokens as secrets.
 
 > [!TIP]
-> You can check the [tests/fixtures](tests/fixtures) directory for example configurations.
+> See [tests/fixtures](tests/fixtures) for example configurations.
 
 The Helm release should run before the `goauthentik/authentik` provider configures the OIDC provider, application, proxy provider, scope mappings, and embedded outpost.
 
@@ -53,26 +53,15 @@ tofu init
 tofu test
 ```
 
-For the Docker integration test and full Istio browser-authentication flow, install the [`platform-grouping` plugin](https://github.com/osinfra-io/pt-ai-plugins/tree/main/plugins/platform-grouping) and ask Copilot CLI to use the `test-local-gateway-stack` skill. The skill discovers the related repositories, starts and validates both fixtures, diagnoses failures, supports optional Google OAuth testing, and performs cleanup when requested.
+### Local browser authentication
+
+Use the `test-local-gateway-stack` skill from the [`platform-grouping` plugin](https://github.com/osinfra-io/pt-ai-plugins/tree/main/plugins/platform-grouping) for setup, browser-authentication checks, optional Google OAuth credentials, diagnostics, and teardown:
 
 ```text
 Use the test-local-gateway-stack skill to test this checkout.
 ```
 
-For Google sign-in, set the credentials used by the local test:
-
-```bash
-export TF_VAR_google_oauth_client_id="<client-id>"
-read -rsp "Google OAuth client secret: " TF_VAR_google_oauth_client_secret
-export TF_VAR_google_oauth_client_secret
-echo
-```
-
-Unset both variables after testing:
-
-```bash
-unset TF_VAR_google_oauth_client_id TF_VAR_google_oauth_client_secret
-```
+### Existing deployment: Google OAuth migration
 
 When enabling Google in an existing Authentik deployment, import the shared `default-authentication-identification` stage at the consumer's indexed module address and set `manage_default_authentication_stage = true`. Before importing, inspect the live stage and pass every setting through `default_authentication_stage_settings`, including explicit `null` values for unlinked stages and flows, plus the UUIDs of existing login sources through `default_authentication_source_uuids`. This one-time migration prevents OpenTofu from trying to recreate the built-in stage and preserves local-password, CAPTCHA, WebAuthn, flow-link, and independently configured OAuth or SAML behavior.
 
