@@ -22,7 +22,4 @@ plan.out
 *.tar
 
 # Local integration testing environment files
-tests/docker/regional/config/.terraform.lock.hcl
-tests/docker/regional/config/terraform.auto.tfvars
-tests/docker/regional/config/terraform.tfstate
-tests/docker/regional/config/terraform.tfstate.backup
+tests/kubernetes/.work/

@@ -14,8 +14,14 @@ variable "chart_repository" {
 }
 
 variable "cloud_sql_connection_name" {
+  default     = null
   description = "Connection name (project:region:instance) of the Cloud SQL instance the Auth Proxy sidecar dials. Authentik connects to the proxy over the pod loopback, so the private-IP instance is reachable without exposing the database on the mesh."
   type        = string
+
+  validation {
+    condition     = var.cloud_sql_connection_name != null || var.external_database_host != "127.0.0.1"
+    error_message = "Set cloud_sql_connection_name for the loopback Cloud SQL proxy, or specify an external_database_host for a direct database connection."
+  }
 }
 
 variable "cloud_sql_proxy_image" {
@@ -53,6 +59,17 @@ variable "existing_secret" {
   type        = string
 }
 
+variable "external_database_host" {
+  default     = "127.0.0.1"
+  description = "PostgreSQL hostname; defaults to the loopback Cloud SQL proxy, or can name a directly reachable database Service"
+  type        = string
+
+  validation {
+    condition     = length(trimspace(var.external_database_host)) > 0
+    error_message = "The external_database_host must not be empty."
+  }
+}
+
 variable "external_database_name" {
   default     = "authentik"
   description = "The name of the external PostgreSQL database"
@@ -72,8 +89,14 @@ variable "external_database_user" {
 }
 
 variable "google_service_account_email" {
+  default     = null
   description = "Email of the Google service account the Cloud SQL Auth Proxy sidecar impersonates via Workload Identity (annotated onto the chart's ServiceAccount). It must hold roles/cloudsql.client on the instance's project."
   type        = string
+
+  validation {
+    condition     = var.cloud_sql_connection_name == null || var.google_service_account_email != null
+    error_message = "Cloud SQL proxy connections require a google_service_account_email for Workload Identity."
+  }
 }
 
 variable "helm_timeout" {
