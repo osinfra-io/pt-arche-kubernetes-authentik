@@ -5,6 +5,8 @@ locals {
   access_token_validity = "seconds=${var.configuration.refresh_seconds - 1}"
   application_name      = "Agentgateway administrators"
   attribute_key         = "${var.configuration.slug}-membership"
+  source_acs_url        = "${trimsuffix(var.authentik_url, "/")}/source/saml/${var.configuration.slug}/acs/"
+  source_entity_id      = "${trimsuffix(var.authentik_url, "/")}/source/saml/${var.configuration.slug}/metadata/"
   source_flows = {
     authentication = "authentication"
     enrollment     = "enrollment"
@@ -57,7 +59,51 @@ locals {
   EOT
 
   source_expression = <<-EOT
+    from datetime import datetime
     import time
+    ns = "{urn:oasis:names:tc:SAML:2.0:assertion}"
+    now = time.time()
+    def timestamp(value):
+        parsed = datetime.fromisoformat(value.replace("Z", "+00:00"))
+        if parsed.tzinfo is None:
+            raise ValueError("Google SAML timestamps must include a timezone")
+        return parsed.timestamp()
+    if (
+        len(root.findall(ns + "Assertion")) != 1
+        or root.findall(ns + "Assertion")[0] != assertion
+        or root.findtext(ns + "Issuer") != ${jsonencode(var.configuration.idp_entity_id)}
+        or assertion.findtext(ns + "Issuer") != ${jsonencode(var.configuration.idp_entity_id)}
+        or root.get("Destination") != ${jsonencode(local.source_acs_url)}
+        or not root.get("InResponseTo")
+    ):
+        raise ValueError("Google SAML response must target this source and trusted issuer")
+    restrictions = assertion.findall(ns + "Conditions/" + ns + "AudienceRestriction")
+    if not restrictions or not all(
+        any(audience.text == ${jsonencode(local.source_entity_id)} for audience in restriction.findall(ns + "Audience"))
+        for restriction in restrictions
+    ):
+        raise ValueError("Google SAML audience must match this environment's Entity ID")
+    conditions = assertion.find(ns + "Conditions")
+    if timestamp(conditions.get("NotOnOrAfter", "")) <= now:
+        raise ValueError("Google SAML assertion has expired")
+    confirmations = assertion.findall(ns + "Subject/" + ns + "SubjectConfirmation")
+    valid_confirmation = False
+    for confirmation in confirmations:
+        data = confirmation.find(ns + "SubjectConfirmationData")
+        if (
+            confirmation.get("Method") == "urn:oasis:names:tc:SAML:2.0:cm:bearer"
+            and data is not None
+            and data.get("Recipient") == ${jsonencode(local.source_acs_url)}
+            and data.get("InResponseTo") == root.get("InResponseTo")
+            and timestamp(data.get("NotOnOrAfter", "")) > now
+        ):
+            valid_confirmation = True
+    if not valid_confirmation:
+        raise ValueError("Google SAML bearer confirmation must match this request and ACS")
+    checked_at = timestamp(assertion.get("IssueInstant", ""))
+    if checked_at > now + 60 or now - checked_at >= ${var.configuration.refresh_seconds}:
+        raise ValueError("Google SAML membership assertion is outside the freshness bound")
+    checked_at = min(now, checked_at)
     email = properties.get("email")
     if not isinstance(email, str):
         raise ValueError("Google SAML must provide exactly one email attribute")
@@ -79,7 +125,7 @@ locals {
         "email": email,
         "groups": [${jsonencode(var.configuration.group_name)}] if member else [],
         "attributes": {
-            ${jsonencode(local.attribute_key)}: {"member": member, "checked_at": time.time()},
+            ${jsonencode(local.attribute_key)}: {"member": member, "checked_at": checked_at},
         },
     }
   EOT

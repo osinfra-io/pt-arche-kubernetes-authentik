@@ -10,6 +10,7 @@ variable "admin_saml" {
     google_group        = string
     group_attribute     = optional(string, "groups")
     group_name          = optional(string, "agentgateway-admins")
+    idp_entity_id       = string
     refresh_seconds     = optional(number, 14400)
     signing_certificate = string
     slug                = optional(string, "agentgateway-admins")

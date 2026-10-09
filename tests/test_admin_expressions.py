@@ -1,12 +1,15 @@
 """Exercise the actual administrator expressions without an Authentik server."""
 
+from datetime import datetime, timezone
 import json
 from pathlib import Path
 import re
+import time
 from textwrap import dedent, indent
 from types import SimpleNamespace
 import unittest
 from unittest.mock import patch
+from xml.etree import ElementTree
 
 
 LOCALS = (
@@ -18,8 +21,40 @@ VALUES = {
     "var.configuration.group_name": "agentgateway-admins",
     "var.configuration.google_group": "Pneuma Sandbox Administrators",
     "var.configuration.group_attribute": "groups",
+    "var.configuration.idp_entity_id": "https://accounts.google.com/o/saml2?idpid=test",
     "lower(var.configuration.email_domain)": "example.com",
+    "local.source_acs_url": "https://authentik.example.com/source/saml/agentgateway-admins/acs/",
+    "local.source_entity_id": "https://authentik.example.com/source/saml/agentgateway-admins/metadata/",
 }
+NS = "{urn:oasis:names:tc:SAML:2.0:assertion}"
+
+
+def saml_context():
+    instant = datetime.fromtimestamp(time.time() - 1, timezone.utc).isoformat()
+    expiry = datetime.fromtimestamp(time.time() + 300, timezone.utc).isoformat()
+    root = ElementTree.Element(
+        "{urn:oasis:names:tc:SAML:2.0:protocol}Response",
+        Destination=VALUES["local.source_acs_url"],
+        InResponseTo="request-id",
+    )
+    ElementTree.SubElement(root, NS + "Issuer").text = VALUES["var.configuration.idp_entity_id"]
+    assertion = ElementTree.SubElement(root, NS + "Assertion", IssueInstant=instant)
+    ElementTree.SubElement(assertion, NS + "Issuer").text = VALUES["var.configuration.idp_entity_id"]
+    conditions = ElementTree.SubElement(assertion, NS + "Conditions", NotOnOrAfter=expiry)
+    restriction = ElementTree.SubElement(conditions, NS + "AudienceRestriction")
+    ElementTree.SubElement(restriction, NS + "Audience").text = VALUES["local.source_entity_id"]
+    subject = ElementTree.SubElement(assertion, NS + "Subject")
+    confirmation = ElementTree.SubElement(
+        subject, NS + "SubjectConfirmation", Method="urn:oasis:names:tc:SAML:2.0:cm:bearer"
+    )
+    ElementTree.SubElement(
+        confirmation,
+        NS + "SubjectConfirmationData",
+        Recipient=VALUES["local.source_acs_url"],
+        InResponseTo="request-id",
+        NotOnOrAfter=expiry,
+    )
+    return {"root": root, "assertion": assertion}
 
 
 def expression(name):
@@ -40,6 +75,8 @@ def expression(name):
 
 
 def evaluate(name, **context):
+    if name == "source_expression" and "assertion" not in context:
+        context.update(saml_context())
     namespace = dict(context)
     if "request" in context:
         namespace["http_request"] = context["request"].http_request
@@ -162,6 +199,66 @@ class AdminExpressionsTest(unittest.TestCase):
         self.assertEqual(evaluate("expiry_expression", token=token), {"exp": 0})
         token.user.attributes["agentgateway-admins-membership"] = None
         self.assertEqual(evaluate("expiry_expression", token=token), {"exp": 0})
+
+    def test_wrong_environment_audience_is_rejected(self):
+        context = saml_context()
+        context["assertion"].find(NS + "Conditions/" + NS + "AudienceRestriction/" + NS + "Audience").text = "https://another-environment.example/metadata/"
+        with self.assertRaisesRegex(ValueError, "audience"):
+            evaluate("source_expression", request=request(), properties={"email": "brett@example.com"}, **context)
+
+    def test_wrong_issuer_destination_and_recipient_are_rejected(self):
+        for target in ("issuer", "destination", "recipient", "request-id"):
+            with self.subTest(target=target):
+                context = saml_context()
+                if target == "issuer":
+                    context["assertion"].find(NS + "Issuer").text = "https://other-idp.example"
+                elif target == "destination":
+                    context["root"].set("Destination", "https://other-source.example/acs/")
+                else:
+                    data = context["assertion"].find(NS + "Subject/" + NS + "SubjectConfirmation/" + NS + "SubjectConfirmationData")
+                    data.set("Recipient" if target == "recipient" else "InResponseTo", "wrong")
+                with self.assertRaises(ValueError):
+                    evaluate("source_expression", request=request(), properties={"email": "brett@example.com"}, **context)
+
+    def test_missing_audience_and_multiple_assertions_are_rejected(self):
+        for target in ("audience", "assertions"):
+            with self.subTest(target=target):
+                context = saml_context()
+                if target == "audience":
+                    conditions = context["assertion"].find(NS + "Conditions")
+                    conditions.remove(conditions.find(NS + "AudienceRestriction"))
+                else:
+                    ElementTree.SubElement(context["root"], NS + "Assertion")
+                with self.assertRaises(ValueError):
+                    evaluate("source_expression", request=request(), properties={"email": "brett@example.com"}, **context)
+
+    @patch("time.time", return_value=1100)
+    def test_membership_timestamp_uses_assertion_issuance(self, _clock):
+        context = saml_context()
+        context["assertion"].set("IssueInstant", datetime.fromtimestamp(1000, timezone.utc).isoformat())
+        result = evaluate(
+            "source_expression",
+            request=request(),
+            properties={"email": "brett@example.com", "groups": ["Pneuma Sandbox Administrators"]},
+            **context,
+        )
+        self.assertEqual(result["attributes"]["agentgateway-admins-membership"]["checked_at"], 1000)
+
+    @patch("time.time", return_value=15400)
+    def test_delayed_assertion_cannot_restart_freshness(self, _clock):
+        context = saml_context()
+        context["assertion"].set("IssueInstant", datetime.fromtimestamp(1000, timezone.utc).isoformat())
+        with self.assertRaisesRegex(ValueError, "freshness"):
+            evaluate("source_expression", request=request(), properties={"email": "brett@example.com"}, **context)
+
+    def test_expired_and_timezone_free_confirmations_are_rejected(self):
+        for expiry in ("1970-01-01T00:00:00+00:00", "2100-01-01T00:00:00"):
+            with self.subTest(expiry=expiry):
+                context = saml_context()
+                data = context["assertion"].find(NS + "Subject/" + NS + "SubjectConfirmation/" + NS + "SubjectConfirmationData")
+                data.set("NotOnOrAfter", expiry)
+                with self.assertRaises(ValueError):
+                    evaluate("source_expression", request=request(), properties={"email": "brett@example.com"}, **context)
 
 
 if __name__ == "__main__":

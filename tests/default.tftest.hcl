@@ -168,13 +168,14 @@ run "saml_admins" {
       email_domain        = "example.com"
       external_host       = "https://agentgateway.example.com"
       google_group        = "Pneuma Sandbox Administrators"
+      idp_entity_id       = "https://accounts.google.com/o/saml2?idpid=mock"
       signing_certificate = "-----BEGIN CERTIFICATE-----\nmock-only\n-----END CERTIFICATE-----"
       sso_url             = "https://accounts.google.com/o/saml2/idp?idpid=fixture"
     }
   }
 
   assert {
-    condition     = output.admin_saml["agentgateway"].source.signed_response && !output.admin_saml["agentgateway"].source.signed_assertion && !output.admin_saml["agentgateway"].source.allow_idp_initiated
+    condition     = output.admin_saml["agentgateway"].source.signed_response && !output.admin_saml["agentgateway"].source.signed_assertion && !output.admin_saml["agentgateway"].source.allow_idp_initiated && output.admin_saml["agentgateway"].source.issuer == "https://authentik.example.com/source/saml/agentgateway-admins/metadata/"
     error_message = "Google responses must be signed and unsolicited IdP-initiated login must be disabled."
   }
 

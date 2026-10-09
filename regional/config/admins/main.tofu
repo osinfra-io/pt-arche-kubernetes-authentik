@@ -149,6 +149,7 @@ resource "authentik_source_saml" "google" {
   binding_type            = "REDIRECT"
   enrollment_flow         = authentik_flow.source["enrollment"].uuid
   group_matching_mode     = "name_link"
+  issuer                  = local.source_entity_id
   name                    = "${local.application_name} Google Workspace"
   name_id_policy          = "urn:oasis:names:tc:SAML:1.1:nameid-format:emailAddress"
   pre_authentication_flow = data.authentik_flow.pre_authentication.id

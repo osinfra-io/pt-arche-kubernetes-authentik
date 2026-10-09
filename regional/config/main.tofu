@@ -6,6 +6,7 @@ module "admins" {
 
   for_each = local.admin_saml_configurations
 
+  authentik_url        = var.authentik_url
   baseline_group_id    = authentik_group.all.id
   configuration        = each.value
   invalidation_flow_id = data.authentik_flow.invalidation.id

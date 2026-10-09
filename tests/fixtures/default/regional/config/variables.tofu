@@ -19,6 +19,7 @@ variable "admin_saml" {
     email_domain        = string
     external_host       = string
     google_group        = string
+    idp_entity_id       = string
     signing_certificate = string
     sso_url             = string
   })
