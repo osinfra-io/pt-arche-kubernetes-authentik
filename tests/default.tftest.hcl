@@ -155,3 +155,101 @@ run "google_disabled_regional_config" {
     error_message = "Disabling Google should preserve independently managed identification-stage sources."
   }
 }
+
+run "managed_application_membership" {
+  command = apply
+
+  module {
+    source = "./tests/fixtures/default/regional/config"
+  }
+
+  variables {
+    application_groups = {
+      pt-pneuma-agentgateway-admins = {
+        description = "agentgateway UI access"
+        members     = ["member@example.com", "new@example.com"]
+        name        = "pt-pneuma: agentgateway Admins"
+      }
+    }
+  }
+
+  override_data {
+    target = module.test.data.authentik_users.google[0]
+    values = {
+      users = [
+        {
+          attributes   = "{\"osinfra_google_email\":\"member@example.com\"}"
+          avatar       = ""
+          date_joined  = ""
+          email        = "member@example.com"
+          groups       = []
+          is_active    = true
+          is_superuser = false
+          last_login   = ""
+          name         = "Member"
+          path         = "goauthentik.io/sources/google"
+          pk           = 101
+          type         = "external"
+          uid          = "member"
+          username     = "member@example.com"
+          uuid         = "00000000-0000-0000-0000-000000000101"
+        },
+        {
+          attributes   = "{}"
+          avatar       = ""
+          date_joined  = ""
+          email        = "new@example.com"
+          groups       = []
+          is_active    = true
+          is_superuser = false
+          last_login   = ""
+          name         = "Unverified"
+          path         = "goauthentik.io/sources/google"
+          pk           = 102
+          type         = "external"
+          uid          = "unverified"
+          username     = "new@example.com"
+          uuid         = "00000000-0000-0000-0000-000000000102"
+        },
+      ]
+    }
+  }
+
+  assert {
+    condition     = output.application_groups["pt-pneuma-agentgateway-admins"].name == "pt-pneuma: agentgateway Admins" && !output.application_groups["pt-pneuma-agentgateway-admins"].is_superuser && output.application_groups["pt-pneuma-agentgateway-admins"].users == tolist([101])
+    error_message = "Only a verified Google identity may join the non-superuser application group; preserve the display name."
+  }
+
+  assert {
+    condition     = output.pending_application_members["pt-pneuma-agentgateway-admins"] == tolist(["new@example.com"])
+    error_message = "Unverified or not-yet-enrolled identities must remain explicitly pending."
+  }
+
+  assert {
+    condition     = length(output.google_authentication_user_write_stages) == 1 && output.google_authentication_user_write_stages[0].user_creation_mode == "never_create"
+    error_message = "Google sign-in must persist source identity updates for existing users without pre-provisioning accounts."
+  }
+}
+
+run "application_membership_removed" {
+  command = apply
+
+  module {
+    source = "./tests/fixtures/default/regional/config"
+  }
+
+  variables {
+    application_groups = {
+      pt-pneuma-agentgateway-admins = {
+        description = "agentgateway UI access"
+        members     = []
+        name        = "pt-pneuma: agentgateway Admins"
+      }
+    }
+  }
+
+  assert {
+    condition     = length(output.application_groups["pt-pneuma-agentgateway-admins"].users) == 0 && length(output.pending_application_members["pt-pneuma-agentgateway-admins"]) == 0
+    error_message = "Removing all declared members must empty the managed application group without deleting it."
+  }
+}

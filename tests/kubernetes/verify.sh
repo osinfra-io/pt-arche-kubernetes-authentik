@@ -12,6 +12,7 @@ curl --noproxy '*' --fail --insecure --silent --show-error --connect-timeout 5 -
 
 start_admin_forward
 python3 -B "${LOCAL_DIR}/verify-authentication.py" "${WORK_DIR}"
+python3 -B "${LOCAL_DIR}/verify-application-access.py" "${WORK_DIR}"
 
 google_location="$(curl --noproxy '*' --insecure --silent --show-error --connect-timeout 5 --max-time 15 \
   --output /dev/null --write-out '%{http_code} %{redirect_url}' \

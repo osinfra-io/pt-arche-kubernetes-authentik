@@ -18,7 +18,8 @@ terraform {
 module "test" {
   source = "../../../../../regional/config"
 
-  authentik_url = "https://authentik.example.com"
+  application_groups = var.application_groups
+  authentik_url      = "https://authentik.example.com"
   browser_group_policy_bindings = {
     "https://gateway.example.com" = {
       groups = ["all", "project-admins"]
@@ -67,4 +68,29 @@ output "preserved_authentication_source" {
 output "default_authentication_stage_managed" {
   description = "Whether the fixture keeps the shared authentication stage managed"
   value       = module.test.default_authentication_stage_managed
+}
+
+variable "application_groups" {
+  default     = {}
+  description = "Managed application groups exercised by the fixture"
+  type = map(object({
+    description = string
+    members     = list(string)
+    name        = string
+  }))
+}
+
+output "application_groups" {
+  description = "Managed application groups"
+  value       = module.test.application_groups
+}
+
+output "pending_application_members" {
+  description = "Members awaiting verified Google enrollment"
+  value       = module.test.pending_application_members
+}
+
+output "google_authentication_user_write_stages" {
+  description = "Existing-user updates during Google sign-in"
+  value       = module.test.google_authentication_user_write_stages
 }
