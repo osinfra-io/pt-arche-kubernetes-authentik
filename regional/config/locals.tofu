@@ -75,9 +75,10 @@ locals {
     }
   EOT
 
-  browser_proxy_property_mapping_ids = local.application_groups_enabled_count > 0 ? [
-    authentik_property_mapping_provider_scope.google_proxy[0].id,
-  ] : null
+  browser_proxy_property_mapping_ids = concat(
+    local.proxy_default_property_mapping_ids,
+    [for mapping in authentik_property_mapping_provider_scope.google_proxy : mapping.id],
+  )
 
   google_group_matching_mode = length(var.application_groups) > 0 ? "name_link" : "identifier"
 
@@ -103,6 +104,14 @@ locals {
       if !contains(keys(local.google_user_ids_by_email), email)
     ])
   }
+
+  proxy_default_property_mapping_ids = [
+    data.authentik_property_mapping_provider_scope.email.id,
+    data.authentik_property_mapping_provider_scope.entitlements.id,
+    data.authentik_property_mapping_provider_scope.openid.id,
+    data.authentik_property_mapping_provider_scope.profile.id,
+    data.authentik_property_mapping_provider_scope.proxy.id,
+  ]
 
   all_group_name = "all"
 

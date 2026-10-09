@@ -218,6 +218,7 @@ resource "authentik_provider_proxy" "gateway" {
   invalidation_flow  = data.authentik_flow.invalidation.id
   mode               = "forward_single"
   name               = "${var.application_name} forward-auth"
+  property_mappings  = local.proxy_default_property_mapping_ids
 }
 
 resource "authentik_provider_proxy" "browser" {

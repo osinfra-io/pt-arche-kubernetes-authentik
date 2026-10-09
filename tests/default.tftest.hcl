@@ -100,6 +100,49 @@ run "default_regional" {
   }
 }
 
+run "proxy_defaults_converge" {
+  command = apply
+
+  module {
+    source = "./regional/config"
+  }
+
+  variables {
+    google_oauth_client_id     = ""
+    google_oauth_client_secret = ""
+    authentik_url              = "https://authentik.example.com"
+    external_host              = "https://gateway.example.com"
+    namespace                  = "authentik"
+    default_authentication_stage_settings = {
+      captcha_stage             = null
+      case_insensitive_matching = true
+      enable_remember_me        = false
+      enrollment_flow           = null
+      password_stage            = null
+      passwordless_flow         = null
+      pretend_user_exists       = true
+      recovery_flow             = null
+      show_matched_user         = true
+      show_source_labels        = false
+      user_fields               = ["email", "username"]
+      webauthn_stage            = null
+    }
+    browser_group_policy_bindings = {
+      "https://gateway.example.com" = {
+        groups = ["all"]
+        host   = "https://gateway.example.com"
+      }
+    }
+  }
+
+  assert {
+    condition = (length(local.proxy_default_property_mapping_ids) == 5 &&
+      toset(authentik_provider_proxy.gateway.property_mappings) == toset(local.proxy_default_property_mapping_ids) &&
+    toset(authentik_provider_proxy.browser["https://gateway.example.com"].property_mappings) == toset(local.proxy_default_property_mapping_ids))
+    error_message = "Both proxy types must explicitly retain all five server-enforced default mappings."
+  }
+}
+
 run "google_enabled_regional_config" {
   command = apply
 
