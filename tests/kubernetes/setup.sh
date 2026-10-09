@@ -101,12 +101,7 @@ with (work / "config/bootstrap.tfvars.json").open("w") as stream:
 PY
 
 local_tofu config init -input=false
-saml_args=()
-if [ -f "${WORK_DIR}/config/admin-saml.tfvars.json" ]; then
-  saml_args=(-var-file="${WORK_DIR}/config/admin-saml.tfvars.json")
-fi
 local_tofu config apply -input=false -auto-approve \
   -state="${WORK_DIR}/config/terraform.tfstate" \
-  -var-file="${WORK_DIR}/config/bootstrap.tfvars.json" \
-  "${saml_args[@]}"
+  -var-file="${WORK_DIR}/config/bootstrap.tfvars.json"
 echo "Authentik configured in Kubernetes. Browser verification remains pending."

@@ -4,7 +4,6 @@
 module "authentik_config" {
   source = "../../../regional/config"
 
-  admin_saml             = local.admin_saml
   application_launch_url = "https://dev.localhost/istio-test/auth"
   application_name       = "Development"
   application_slug       = "development-oidc"

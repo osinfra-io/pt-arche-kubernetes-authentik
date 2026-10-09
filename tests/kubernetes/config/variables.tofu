@@ -1,20 +1,6 @@
 # Input Variables
 # https://opentofu.org/docs/language/values/variables
 
-variable "admin_saml" {
-  default     = null
-  description = "Optional Google SAML trust for local administrator testing; requires a custom Google SAML app with the authentik.localhost ACS"
-  type = object({
-    email_domain        = string
-    google_group        = string
-    group_attribute     = optional(string, "groups")
-    idp_entity_id       = string
-    refresh_seconds     = optional(number, 14400)
-    signing_certificate = string
-    sso_url             = string
-  })
-}
-
 variable "authentik_token" {
   description = "Local Authentik bootstrap API token"
   sensitive   = true
