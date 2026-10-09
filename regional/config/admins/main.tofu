@@ -182,7 +182,7 @@ resource "authentik_stage_deny" "nonmember" {
 
 resource "authentik_stage_source" "google" {
   name   = "${local.application_name} Google membership refresh"
-  source = authentik_source_saml.google.id
+  source = authentik_source_saml.google.uuid
 }
 
 # Authentik User Write Stage

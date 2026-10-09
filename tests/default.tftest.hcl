@@ -185,6 +185,11 @@ run "saml_admins" {
   }
 
   assert {
+    condition     = output.admin_saml["agentgateway"].source_stage.source == output.admin_saml["agentgateway"].source.uuid
+    error_message = "The Enterprise Source stage must reference the SAML source UUID, not its slug."
+  }
+
+  assert {
     condition     = output.admin_saml["agentgateway"].authorization_bindings.source.order < output.admin_saml["agentgateway"].authorization_bindings.deny.order && !output.admin_saml["agentgateway"].authorization_bindings.deny.evaluate_on_plan && output.admin_saml["agentgateway"].authorization_bindings.deny.re_evaluate_policies
     error_message = "Membership must be evaluated after the Source stage refreshes groups, not at flow planning."
   }

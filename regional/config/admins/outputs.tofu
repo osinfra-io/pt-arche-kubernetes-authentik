@@ -44,3 +44,8 @@ output "source_expression" {
   description = "Google assertion validation and restricted group mapping expression"
   value       = local.source_expression
 }
+
+output "source_stage" {
+  description = "Enterprise Source stage referencing the source UUID rather than its slug"
+  value       = authentik_stage_source.google
+}

@@ -13,7 +13,7 @@ variable "authentik_url" {
 
 variable "baseline_group_id" {
   description = "Existing baseline Authentik group assigned during enrollment"
-  type        = number
+  type        = string
 }
 
 variable "configuration" {
