@@ -39,8 +39,8 @@ locals {
     import json
     memberships = json.loads(${jsonencode(jsonencode(var.application_groups))})
     email = info.get("email", "")
-    verified = info.get("email_verified", info.get("verified_email"))
-    if verified is not True or not isinstance(email, str) or not email:
+    verification = [info[key] for key in ("email_verified", "verified_email") if key in info]
+    if not verification or any(value is not True for value in verification) or not isinstance(email, str) or not email:
         raise ValueError("Application access requires a verified Google email")
     email = email.lower()
     return {

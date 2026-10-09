@@ -53,12 +53,19 @@ def verify(work):
         mapped = json.loads(result["result"])
         if mapped.get("groups") != [] or mapped.get("attributes", {}).get("osinfra_google_email") != info["email"]:
             raise ValueError("Google mapping did not preserve verified identity and deny an undeclared member")
-    result = api(
-        f"propertymappings/all/{mappings[0]['id']}/test/",
-        {"context": {"info": {"email": "test@example.com", "verified_email": False}}},
-    )
-    if result["successful"]:
-        raise ValueError("Deployed Google mapping accepted an unverified profile")
+    for verification in [
+        {},
+        {"verified_email": False},
+        {"verified_email": "true"},
+        {"email_verified": True, "verified_email": False},
+        {"email_verified": False, "verified_email": True},
+    ]:
+        result = api(
+            f"propertymappings/all/{mappings[0]['id']}/test/",
+            {"context": {"info": {"email": "test@example.com", **verification}}},
+        )
+        if result["successful"]:
+            raise ValueError("Deployed Google mapping accepted an unverified or conflicting profile")
 
     administrators = api("core/users/?username=akadmin")["results"]
     if len(administrators) != 1:

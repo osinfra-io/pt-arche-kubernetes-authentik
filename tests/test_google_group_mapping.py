@@ -64,6 +64,12 @@ class GoogleGroupMappingTest(unittest.TestCase):
         )
         self.assertEqual(result["groups"], [])
 
+    def test_consistent_verification_fields(self):
+        result = self.mapping(
+            {"email": "member@example.com", "email_verified": True, "verified_email": True}
+        )
+        self.assertEqual(result["groups"], ["pt-pneuma: agentgateway Admins"])
+
     def test_unverified_identity_fails(self):
         for info in [
             {"email": "member@example.com"},
@@ -72,6 +78,10 @@ class GoogleGroupMappingTest(unittest.TestCase):
             {"email": "member@example.com", "verified_email": False},
             {"email": "member@example.com", "verified_email": "true"},
             {"email": "member@example.com", "email_verified": False, "verified_email": True},
+            {"email": "member@example.com", "email_verified": True, "verified_email": False},
+            {"email": "member@example.com", "email_verified": True, "verified_email": "true"},
+            {"email": "member@example.com", "email_verified": 1},
+            {"email": "member@example.com", "verified_email": 1},
             {"email": "", "email_verified": True},
             {"email": None, "email_verified": True},
         ]:
