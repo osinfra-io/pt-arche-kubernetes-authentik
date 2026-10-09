@@ -2,6 +2,15 @@
 # https://github.com/pre-commit/pre-commit
 
 repos:
+  - repo: local
+    hooks:
+      - id: admin-expression-tests
+        name: Administrator expression tests
+        entry: python3 -B -m unittest discover -s tests -p test_admin_expressions.py
+        language: system
+        pass_filenames: false
+        files: ^(regional/config/admins/|tests/test_admin_expressions\.py)
+
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: 3e8a8703264a2f4a69428a0aa4dcb512790b2c8c # frozen: v6.0.0
     hooks:

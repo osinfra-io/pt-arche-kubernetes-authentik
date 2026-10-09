@@ -155,3 +155,46 @@ run "google_disabled_regional_config" {
     error_message = "Disabling Google should preserve independently managed identification-stage sources."
   }
 }
+
+run "saml_admins" {
+  command = apply
+
+  module {
+    source = "./tests/fixtures/default/regional/config"
+  }
+
+  variables {
+    admin_saml = {
+      email_domain        = "example.com"
+      external_host       = "https://agentgateway.example.com"
+      google_group        = "Pneuma Sandbox Administrators"
+      signing_certificate = "-----BEGIN CERTIFICATE-----\nmock-only\n-----END CERTIFICATE-----"
+      sso_url             = "https://accounts.google.com/o/saml2/idp?idpid=fixture"
+    }
+  }
+
+  assert {
+    condition     = output.admin_saml["agentgateway"].source.signed_response && !output.admin_saml["agentgateway"].source.signed_assertion && !output.admin_saml["agentgateway"].source.allow_idp_initiated
+    error_message = "Google responses must be signed and unsolicited IdP-initiated login must be disabled."
+  }
+
+  assert {
+    condition     = !output.admin_saml["agentgateway"].group.is_superuser && output.admin_saml["agentgateway"].group.name == "agentgateway-admins"
+    error_message = "Application administrators must not become Authentik superusers."
+  }
+
+  assert {
+    condition     = output.admin_saml["agentgateway"].authorization_bindings.source.order < output.admin_saml["agentgateway"].authorization_bindings.deny.order && !output.admin_saml["agentgateway"].authorization_bindings.deny.evaluate_on_plan && output.admin_saml["agentgateway"].authorization_bindings.deny.re_evaluate_policies
+    error_message = "Membership must be evaluated after the Source stage refreshes groups, not at flow planning."
+  }
+
+  assert {
+    condition     = output.admin_saml["agentgateway"].provider.access_token_validity == "seconds=14399" && output.admin_saml["agentgateway"].provider.refresh_token_validity == "seconds=0" && !output.admin_saml["agentgateway"].provider.intercept_header_auth
+    error_message = "Administrator sessions must be bounded without refresh-token or header-auth bypasses."
+  }
+
+  assert {
+    condition     = output.browser_group_policy_binding_count == 2 && output.google_oauth_source_enabled
+    error_message = "Adding administrator SAML must preserve existing OAuth and browser group bindings."
+  }
+}

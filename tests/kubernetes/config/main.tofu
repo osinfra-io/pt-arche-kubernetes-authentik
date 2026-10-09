@@ -4,21 +4,13 @@
 module "authentik_config" {
   source = "../../../regional/config"
 
+  admin_saml             = local.admin_saml
   application_launch_url = "https://dev.localhost/istio-test/auth"
   application_name       = "Development"
   application_slug       = "development-oidc"
   authentik_url          = "https://authentik.localhost"
 
-  browser_group_policy_bindings = {
-    agentgateway = {
-      groups = ["all"]
-      host   = "https://agentgateway.localhost"
-    }
-    development = {
-      groups = ["all"]
-      host   = "https://dev.localhost"
-    }
-  }
+  browser_group_policy_bindings = local.browser_group_policy_bindings
 
   client_id = "development"
 

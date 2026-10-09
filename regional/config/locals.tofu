@@ -2,7 +2,19 @@
 # https://opentofu.org/docs/language/values/locals
 
 locals {
+  admin_saml_configurations = var.admin_saml == null ? {} : { agentgateway = var.admin_saml }
+
   all_group_name = "all"
+
+  browser_group_policy_bindings = flatten([
+    for host_key, binding in var.browser_group_policy_bindings : [
+      for group in binding.groups : {
+        host_key = host_key
+        group    = group
+        host     = binding.host
+      }
+    ]
+  ])
 
   # The built-in embedded outpost that runs inside the authentik-server pods. Assigning the proxy
   # provider to it makes each regional server serve forward-auth locally for Istio ext_authz.

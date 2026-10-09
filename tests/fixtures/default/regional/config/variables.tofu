@@ -13,3 +13,13 @@ variable "google_oauth_client_secret" {
   sensitive   = true
   type        = string
 }
+variable "admin_saml" {
+  default = null
+  type = object({
+    email_domain        = string
+    external_host       = string
+    google_group        = string
+    signing_certificate = string
+    sso_url             = string
+  })
+}

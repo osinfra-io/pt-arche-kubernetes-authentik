@@ -1,6 +1,11 @@
 # Output Values
 # https://opentofu.org/docs/language/values/outputs
 
+output "admin_saml" {
+  description = "Dedicated administrator SAML configuration resources, empty when disabled"
+  value       = module.admins
+}
+
 output "browser_group_policy_bindings" {
   description = "The effective per-host Authentik browser authorization group bindings configured for this module"
   value       = var.browser_group_policy_bindings

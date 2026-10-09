@@ -13,6 +13,13 @@ permissions:
   contents: read
 
 jobs:
+  admin_expressions:
+    name: Administrator expressions
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955 # v4.3.0
+      - run: python3 -B -m unittest discover -s tests -p test_admin_expressions.py
+
   tests:
     name: Tests
     uses: osinfra-io/pt-techne-opentofu-workflows/.github/workflows/test.yml@66e04fe1c5a017238caf7be3d544a0a66b918dd1 # v0.5.5

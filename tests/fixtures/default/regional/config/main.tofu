@@ -18,6 +18,7 @@ terraform {
 module "test" {
   source = "../../../../../regional/config"
 
+  admin_saml    = var.admin_saml
   authentik_url = "https://authentik.example.com"
   browser_group_policy_bindings = {
     "https://gateway.example.com" = {
@@ -67,4 +68,9 @@ output "preserved_authentication_source" {
 output "default_authentication_stage_managed" {
   description = "Whether the fixture keeps the shared authentication stage managed"
   value       = module.test.default_authentication_stage_managed
+}
+
+output "admin_saml" {
+  description = "Dedicated administrator integration resources"
+  value       = module.test.admin_saml
 }

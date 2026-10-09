@@ -20,6 +20,10 @@ Provide external PostgreSQL and an existing Secret containing bootstrap and data
 > [!TIP]
 > You can check the [tests/fixtures](tests/fixtures) directory for example configurations. These fixtures set up the system for testing by providing all the necessary initial code, thus creating good examples on which to base your configurations.
 
+Administrator browser access can use an optional Google Workspace SAML source and the Enterprise Source stage. Google OAuth alone does not supply Google group membership. Google Admin owns the custom SAML app and its group attribute; OpenTofu manages the Authentik trust, mappings, and authorization flow. See [Gateway Authentication](https://docs.osinfra.io/platform-grouping/pneuma/gateway-authentication) for setup and revocation requirements.
+
+The local agentgateway UI requires `agentgateway-admins`, not the baseline `all` group. Without local SAML trust, enrollment does not grant administrator membership. Configure a local Google SAML app to exercise administrator access; ordinary Google OAuth and the development diagnostic remain available.
+
 ## 🛠️ Tools
 
 - [pre-commit](https://github.com/pre-commit/pre-commit)

@@ -1,6 +1,30 @@
 # Input Variables
 # https://opentofu.org/docs/language/values/variables
 
+variable "admin_saml" {
+  default     = null
+  description = "Optional dedicated agentgateway administrator SAML configuration; null preserves current OAuth/browser behavior. Requires an active Enterprise license and a Google Admin custom SAML application."
+  type = object({
+    email_domain        = string
+    external_host       = string
+    google_group        = string
+    group_attribute     = optional(string, "groups")
+    group_name          = optional(string, "agentgateway-admins")
+    refresh_seconds     = optional(number, 14400)
+    signing_certificate = string
+    slug                = optional(string, "agentgateway-admins")
+    sso_url             = string
+  })
+
+  validation {
+    condition = var.admin_saml == null ? true : alltrue([
+      for binding in values(var.browser_group_policy_bindings) :
+      binding.host != var.admin_saml.external_host && !contains(binding.groups, var.admin_saml.group_name)
+    ])
+    error_message = "The dedicated admin host and source-managed group must not also be configured as ordinary browser group bindings."
+  }
+}
+
 variable "application_name" {
   default     = "Platform Gateway"
   description = "The display name of the Authentik application for the gateway"

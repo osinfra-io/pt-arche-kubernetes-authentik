@@ -1,13 +1,14 @@
-locals {
-  browser_group_policy_bindings = flatten([
-    for host_key, binding in var.browser_group_policy_bindings : [
-      for group in binding.groups : {
-        host_key = host_key
-        group    = group
-        host     = binding.host
-      }
-    ]
-  ])
+# Authentik Administrator Configuration Module (osinfra.io)
+# https://github.com/osinfra-io/pt-arche-kubernetes-authentik
+
+module "admins" {
+  source = "./admins"
+
+  for_each = local.admin_saml_configurations
+
+  baseline_group_id    = authentik_group.all.id
+  configuration        = each.value
+  invalidation_flow_id = data.authentik_flow.invalidation.id
 }
 
 # Authentik Application
@@ -260,6 +261,7 @@ resource "authentik_outpost" "embedded" {
   protocol_providers = concat(
     [authentik_provider_proxy.gateway.id],
     [for provider in authentik_provider_proxy.browser : provider.id],
+    [for admins in module.admins : admins.provider.id],
   )
   type = "proxy"
 }
