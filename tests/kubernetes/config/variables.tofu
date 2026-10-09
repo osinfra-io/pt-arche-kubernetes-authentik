@@ -7,7 +7,9 @@ variable "admin_saml" {
   type = object({
     email_domain        = string
     google_group        = string
+    group_attribute     = optional(string, "groups")
     idp_entity_id       = string
+    refresh_seconds     = optional(number, 14400)
     signing_certificate = string
     sso_url             = string
   })
