@@ -18,7 +18,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955 # v4.3.0
-      - run: python3 -B -m unittest discover -s tests -p test_admin_expressions.py
+      - run: python3 -B -m unittest discover -s tests -p 'test_*.py'
 
   tests:
     name: Tests
