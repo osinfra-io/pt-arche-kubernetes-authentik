@@ -5,6 +5,7 @@ module "authentik_config" {
   source = "../../../regional/config"
 
   application_launch_url = "https://dev.localhost/istio-test/auth"
+  application_groups     = local.application_groups
   application_name       = "Development"
   application_slug       = "development-oidc"
   authentik_url          = "https://authentik.localhost"
@@ -49,4 +50,14 @@ module "authentication" {
   flow_title   = "Welcome to osinfra.io development!"
   policy_ids   = local.authentication_policy_ids
   stage_ids    = local.authentication_stage_ids
+}
+
+# Logos Application Access
+# https://github.com/osinfra-io/pt-pneuma
+
+module "team_access" {
+  source = "../../../../../pneuma/pt-pneuma/regional/istio/gateway-auth/team-access"
+
+  environment = "sandbox"
+  teams       = var.teams
 }

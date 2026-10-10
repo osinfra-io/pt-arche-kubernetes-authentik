@@ -17,6 +17,10 @@ The Authentik server and worker are stateless — all state lives in an external
 
 Provide external PostgreSQL and an existing Secret containing bootstrap and database credentials. Cloud SQL connections require Workload Identity for the Auth Proxy; a directly reachable PostgreSQL host omits the proxy. Deploy `//regional` before `//regional/config`, which requires public HTTPS URLs. Protect credentials and provider tokens; follow the migration instructions below when enabling Google OAuth on an existing deployment. The repository root is not a consumable module.
 
+Application-access groups use team-qualified names such as `pt-pneuma: agentgateway Admins`; they never grant Authentik administrative privileges. Verified Google sign-ins receive declared memberships, and configuration deployment reconciles already-verified users. Existing users must complete Google sign-in after enabling the mapping so their verified identity is recorded. Pending members are reported separately; no accounts or passwords are pre-provisioned.
+
+Review existing-group ownership and import/move requirements before adopting membership management. Reconciliation owns only declared application groups and leaves unrelated groups alone. Group synchronization alone does not provide independent path authorization or revoke cached browser sessions; consumers must enforce those separately before exposing differently authorized applications on one host.
+
 > [!TIP]
 > You can check the [tests/fixtures](tests/fixtures) directory for example configurations. These fixtures set up the system for testing by providing all the necessary initial code, thus creating good examples on which to base your configurations.
 

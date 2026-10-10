@@ -20,6 +20,35 @@ variable "application_slug" {
   type        = string
 }
 
+variable "application_groups" {
+  default     = {}
+  description = "Team-owned application access groups keyed by stable team/group identifiers. Names include the team key, for example pt-pneuma: agentgateway Admins. Members are lowercase verified Google emails for the current environment."
+  type = map(object({
+    description = string
+    members     = list(string)
+    name        = string
+  }))
+
+  validation {
+    condition = alltrue([
+      for group in values(var.application_groups) :
+      can(regex("^(pt|st|ct|et)-[a-z0-9-]+: [A-Za-z][A-Za-z0-9]*( [A-Za-z0-9]+)*$", group.name)) &&
+      length(trimspace(group.description)) > 0 &&
+      length(distinct(group.members)) == length(group.members) &&
+      alltrue([
+        for email in group.members : can(regex("^[a-z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-z0-9-]+(\\.[a-z0-9-]+)+$", email))
+      ])
+    ]) && length(distinct([for group in values(var.application_groups) : group.name])) == length(var.application_groups)
+    error_message = "Application groups must have unique team-qualified names, non-blank descriptions, and unique lowercase member emails."
+  }
+
+  validation {
+    condition     = length(var.application_groups) == 0 || local.google_oauth_enabled
+    error_message = "Managed application groups require the existing Google OAuth source to be enabled."
+  }
+
+}
+
 variable "authentik_url" {
   description = "The public base URL of the Authentik deployment, used to construct the OIDC issuer and JWKS URLs"
   type        = string

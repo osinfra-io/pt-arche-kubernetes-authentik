@@ -1,6 +1,11 @@
 # Output Values
 # https://opentofu.org/docs/language/values/outputs
 
+output "application_groups" {
+  description = "Managed non-superuser application groups keyed by stable identifiers"
+  value       = authentik_group.application
+}
+
 output "browser_group_policy_bindings" {
   description = "The effective per-host Authentik browser authorization group bindings configured for this module"
   value       = var.browser_group_policy_bindings
@@ -31,6 +36,11 @@ output "embedded_outpost_name" {
   value       = local.embedded_outpost_name
 }
 
+output "google_authentication_user_write_stages" {
+  description = "Google-only stages updating existing source users without creating accounts"
+  value       = authentik_stage_user_write.google_authentication
+}
+
 output "google_oauth_source_enabled" {
   description = "Whether the optional Google Authentik source was created (true when both OAuth credential inputs are set)"
   value       = length(authentik_source_oauth.google) > 0
@@ -59,4 +69,9 @@ output "outpost_service_name" {
 output "outpost_service_port" {
   description = "The Kubernetes Service port of the authentik-server embedded outpost for the Istio ext_authz ExtensionProvider"
   value       = local.outpost_service_port
+}
+
+output "pending_application_members" {
+  description = "Declared members awaiting a verified Google sign-in; no accounts or passwords are pre-provisioned"
+  value       = local.pending_application_members
 }

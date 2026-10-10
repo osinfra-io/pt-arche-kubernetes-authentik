@@ -32,4 +32,26 @@ variable "google_oauth_client_secret" {
     condition     = length(var.google_oauth_client_secret) > 0
     error_message = "Local integration requires Google OAuth credentials."
   }
+
+}
+
+variable "revoke_application_access" {
+  default     = false
+  description = "Local-only revocation test: temporarily empty declared application memberships without changing Logos or diagnostic access."
+  type        = bool
+}
+
+variable "teams" {
+  description = "Actual Logos team declaration passed by the owning local setup script."
+  type = map(object({
+    authentik_groups = optional(map(object({
+      description = string
+      label       = string
+      members = optional(object({
+        non-production = optional(list(string), [])
+        production     = optional(list(string), [])
+        sandbox        = optional(list(string), [])
+      }), {})
+    })), {})
+  }))
 }
