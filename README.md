@@ -58,7 +58,9 @@ Run this command in Copilot CLI with the [`platform-grouping` plugin](https://gi
 /platform-grouping:local-integration-testing
 ```
 
-Local integration testing is opt-in for complex configuration changes and separate from the mocked tests. Its Kubernetes fixtures are in `tests/kubernetes`; full verification requires real Google sign-in.
+The fixtures, shared gateway, and verifiers live in [`pt-pneuma`](https://github.com/osinfra-io/pt-pneuma/tree/main/tests/integration) (`tests/integration`); this repository keeps only mocked tests.
+
+Local integration testing is opt-in for complex configuration changes and separate from the mocked tests; full verification requires real Google sign-in.
 
 ### Existing deployment: Google OAuth migration
 
