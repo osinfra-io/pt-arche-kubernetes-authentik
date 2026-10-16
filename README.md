@@ -55,7 +55,7 @@ tofu test
 Run this command in Copilot CLI with the [`platform-grouping` plugin](https://github.com/osinfra-io/pt-ai-plugins/tree/main/plugins/platform-grouping) installed:
 
 ```text
-/platform-grouping:test-pneuma-stack
+/platform-grouping:test-local-integration
 ```
 
 Local integration testing is opt-in for complex configuration changes and separate from the mocked tests. Its Kubernetes fixtures are in `tests/kubernetes`; full verification requires real Google sign-in.
