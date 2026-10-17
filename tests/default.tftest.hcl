@@ -217,7 +217,7 @@ run "managed_application_membership" {
   }
 
   override_data {
-    target = module.test.data.authentik_users.google[0]
+    target = module.test.data.authentik_users.google
     values = {
       users = [
         {

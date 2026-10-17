@@ -23,12 +23,12 @@ output "default_authentication_identification_stage_name" {
 
 output "default_authentication_source_uuids" {
   description = "The source UUIDs assigned to the default authentication identification stage when Google OAuth is enabled"
-  value       = nonsensitive(length(authentik_stage_identification.default_authentication) > 0 ? authentik_stage_identification.default_authentication[0].sources : [])
+  value       = local.default_authentication_source_uuids
 }
 
 output "default_authentication_stage_managed" {
   description = "Whether the shared default authentication identification stage remains under management"
-  value       = length(authentik_stage_identification.default_authentication) > 0
+  value       = local.default_authentication_stage_managed
 }
 
 output "embedded_outpost_name" {
@@ -38,12 +38,12 @@ output "embedded_outpost_name" {
 
 output "google_authentication_user_write_stages" {
   description = "Google-only stages updating existing source users without creating accounts"
-  value       = authentik_stage_user_write.google_authentication
+  value       = local.google_authentication_user_write_stages
 }
 
 output "google_oauth_source_enabled" {
   description = "Whether the optional Google Authentik source was created (true when both OAuth credential inputs are set)"
-  value       = length(authentik_source_oauth.google) > 0
+  value       = local.google_oauth_enabled
 }
 
 output "issuer_url" {
