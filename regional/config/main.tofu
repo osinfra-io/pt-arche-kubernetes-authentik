@@ -1,17 +1,13 @@
-locals {
-  browser_group_policy_bindings = flatten([
-    for host_key, binding in var.browser_group_policy_bindings : [
-      for group in binding.groups : {
-        host_key = host_key
-        group    = group
-        host     = binding.host
-      }
-    ]
-  ])
-}
-
 # Authentik Application
 # https://registry.terraform.io/providers/goauthentik/authentik/latest/docs/resources/application
+
+resource "authentik_application" "browser" {
+  for_each = var.browser_group_policy_bindings
+
+  name              = local.browser_application_names[each.key]
+  protocol_provider = authentik_provider_proxy.browser[each.key].id
+  slug              = local.browser_application_slugs[each.key]
+}
 
 resource "authentik_application" "gateway" {
   meta_launch_url   = var.application_launch_url
@@ -20,42 +16,13 @@ resource "authentik_application" "gateway" {
   slug              = var.application_slug
 }
 
-resource "authentik_application" "browser" {
-  for_each = var.browser_group_policy_bindings
-
-  name              = "${var.application_name} Browser Access (${each.value.host})"
-  protocol_provider = authentik_provider_proxy.browser[each.key].id
-  slug              = replace(replace(replace(trimprefix(each.key, "https://"), ".", "-"), "/", "-"), "_", "-")
-}
-
-# Authentik OAuth2 Provider
-# https://registry.terraform.io/providers/goauthentik/authentik/latest/docs/resources/provider_oauth2
-
-resource "authentik_provider_oauth2" "gateway" {
-  allowed_redirect_uris = var.redirect_uris
-  authorization_flow    = data.authentik_flow.authorization.id
-  client_id             = var.client_id
-  client_type           = "confidential"
-  invalidation_flow     = data.authentik_flow.invalidation.id
-  issuer_mode           = "per_provider"
-  name                  = var.application_name
-  signing_key           = data.authentik_certificate_key_pair.signing.id
-  sub_mode              = "user_email"
-
-  property_mappings = [
-    data.authentik_property_mapping_provider_scope.openid.id,
-    data.authentik_property_mapping_provider_scope.email.id,
-    data.authentik_property_mapping_provider_scope.profile.id,
-    authentik_property_mapping_provider_scope.groups.id,
-    authentik_property_mapping_provider_scope.roles.id,
-  ]
-}
-
 # Authentik Flow
 # https://registry.terraform.io/providers/goauthentik/authentik/latest/docs/resources/flow
 
 resource "authentik_flow" "google_authentication" {
-  count = local.application_groups_enabled_count
+  lifecycle {
+    enabled = local.application_groups_enabled
+  }
 
   authentication = "require_unauthenticated"
   designation    = "authentication"
@@ -68,168 +35,57 @@ resource "authentik_flow" "google_authentication" {
 # default-source-enrollment so JIT-created Google users always land in
 # authentik_group.all, without changing the enrollment behavior of any other source.
 resource "authentik_flow" "google_enrollment" {
-  count = local.google_oauth_enabled ? 1 : 0
+  lifecycle {
+    enabled = local.google_oauth_enabled
+  }
 
-  name        = "Google Source Enrollment"
-  title       = "Google Source Enrollment"
-  slug        = "google-source-enrollment"
   designation = "enrollment"
-}
-
-# Authentik Stage User Login
-# https://registry.terraform.io/providers/goauthentik/authentik/latest/docs/resources/stage_user_login
-
-resource "authentik_stage_user_login" "google_enrollment" {
-  count = local.google_oauth_enabled ? 1 : 0
-
-  name = "Google Source Enrollment - User Login"
-}
-
-# Authentik Stage User Write
-# https://registry.terraform.io/providers/goauthentik/authentik/latest/docs/resources/stage_user_write
-
-resource "authentik_stage_user_write" "google_authentication" {
-  count = local.application_groups_enabled_count
-
-  name               = "Google Source Authentication - User Write"
-  user_creation_mode = "never_create"
-}
-
-resource "authentik_stage_user_write" "google_enrollment" {
-  count = local.google_oauth_enabled ? 1 : 0
-
-  name                     = "Google Source Enrollment - User Write"
-  create_users_as_inactive = false
-  create_users_group       = authentik_group.all.id
-  user_creation_mode       = "create_when_required"
+  name        = "Google Source Enrollment"
+  slug        = "google-source-enrollment"
+  title       = "Google Source Enrollment"
 }
 
 # Authentik Flow Stage Binding
 # https://registry.terraform.io/providers/goauthentik/authentik/latest/docs/resources/flow_stage_binding
 
 resource "authentik_flow_stage_binding" "google_authentication" {
-  count = local.application_groups_enabled_count
+  lifecycle {
+    enabled = local.application_groups_enabled
+  }
 
   order  = 0
-  stage  = authentik_stage_user_write.google_authentication[0].id
-  target = authentik_flow.google_authentication[0].uuid
+  stage  = authentik_stage_user_write.google_authentication.id
+  target = authentik_flow.google_authentication.uuid
 }
 
 resource "authentik_flow_stage_binding" "google_authentication_login" {
-  count = local.application_groups_enabled_count
+  lifecycle {
+    enabled = local.application_groups_enabled
+  }
 
   order  = 1
-  stage  = authentik_stage_user_login.google_enrollment[0].id
-  target = authentik_flow.google_authentication[0].uuid
+  stage  = authentik_stage_user_login.google_enrollment.id
+  target = authentik_flow.google_authentication.uuid
 }
 
 resource "authentik_flow_stage_binding" "google_enrollment" {
-  count = local.google_oauth_enabled ? 1 : 0
+  lifecycle {
+    enabled = local.google_oauth_enabled
+  }
 
   order  = 0
-  stage  = authentik_stage_user_write.google_enrollment[0].id
-  target = authentik_flow.google_enrollment[0].uuid
+  stage  = authentik_stage_user_write.google_enrollment.id
+  target = authentik_flow.google_enrollment.uuid
 }
 
 resource "authentik_flow_stage_binding" "google_enrollment_login" {
-  count = local.google_oauth_enabled ? 1 : 0
+  lifecycle {
+    enabled = local.google_oauth_enabled
+  }
 
   order  = 1
-  stage  = authentik_stage_user_login.google_enrollment[0].id
-  target = authentik_flow.google_enrollment[0].uuid
-}
-
-# Authentik OAuth Source Property Mapping
-# https://registry.terraform.io/providers/goauthentik/authentik/latest/docs/resources/property_mapping_source_oauth
-
-resource "authentik_property_mapping_source_oauth" "google_username" {
-  count = local.google_oauth_enabled ? 1 : 0
-
-  expression = <<-EOT
-    return {"username": info.get("email")}
-  EOT
-  name       = "Google - email as username"
-}
-
-resource "authentik_property_mapping_source_oauth" "google_application_groups" {
-  count = local.application_groups_enabled_count
-
-  expression = local.google_group_mapping_expression
-  name       = "Google - Logos application groups"
-}
-
-# Authentik Google OAuth Source
-# https://registry.terraform.io/providers/goauthentik/authentik/latest/docs/resources/source_oauth
-
-resource "authentik_source_oauth" "google" {
-  count = local.google_oauth_enabled ? 1 : 0
-
-  access_token_url    = "https://oauth2.googleapis.com/token"
-  authentication_flow = local.google_authentication_flow_id
-  authorization_url   = "https://accounts.google.com/o/oauth2/v2/auth"
-  consumer_key        = var.google_oauth_client_id
-  consumer_secret     = var.google_oauth_client_secret
-  enrollment_flow     = authentik_flow.google_enrollment[0].uuid
-  group_matching_mode = local.google_group_matching_mode
-  name                = "Google"
-  oidc_jwks_url       = "https://www.googleapis.com/oauth2/v3/certs"
-  profile_url         = "https://openidconnect.googleapis.com/v1/userinfo"
-
-  property_mappings = local.google_source_property_mapping_ids
-
-  provider_type = "google"
-  slug          = "google"
-}
-
-# Authentik Stage
-# https://registry.terraform.io/providers/goauthentik/authentik/latest/docs/resources/stage_identification
-
-# The default authentication flow's identification stage is a pre-existing, shared object.
-# Consumers import it while management is enabled and pass any independently managed source UUIDs
-# so adding or removing Google preserves the stage and its complete source list.
-resource "authentik_stage_identification" "default_authentication" {
-  count = var.manage_default_authentication_stage ? 1 : 0
-
-  captcha_stage             = var.default_authentication_stage_settings.captcha_stage
-  case_insensitive_matching = var.default_authentication_stage_settings.case_insensitive_matching
-  enable_remember_me        = var.default_authentication_stage_settings.enable_remember_me
-  enrollment_flow           = var.default_authentication_stage_settings.enrollment_flow
-  name                      = local.default_authentication_identification_stage_name
-  password_stage            = var.default_authentication_stage_settings.password_stage
-  passwordless_flow         = var.default_authentication_stage_settings.passwordless_flow
-  pretend_user_exists       = var.default_authentication_stage_settings.pretend_user_exists
-  recovery_flow             = var.default_authentication_stage_settings.recovery_flow
-  show_matched_user         = var.default_authentication_stage_settings.show_matched_user
-  show_source_labels        = var.default_authentication_stage_settings.show_source_labels
-  sources = distinct(concat(
-    var.default_authentication_source_uuids,
-    local.google_oauth_enabled ? [authentik_source_oauth.google[0].uuid] : [],
-  ))
-  user_fields    = var.default_authentication_stage_settings.user_fields
-  webauthn_stage = var.default_authentication_stage_settings.webauthn_stage
-}
-
-# Authentik Proxy Provider (forward-auth)
-# https://registry.terraform.io/providers/goauthentik/authentik/latest/docs/resources/provider_proxy
-
-resource "authentik_provider_proxy" "gateway" {
-  authorization_flow = data.authentik_flow.authorization.id
-  external_host      = var.external_host
-  invalidation_flow  = data.authentik_flow.invalidation.id
-  mode               = "forward_single"
-  name               = "${var.application_name} forward-auth"
-  property_mappings  = local.proxy_default_property_mapping_ids
-}
-
-resource "authentik_provider_proxy" "browser" {
-  for_each = var.browser_group_policy_bindings
-
-  authorization_flow = data.authentik_flow.authorization.id
-  external_host      = each.value.host
-  invalidation_flow  = data.authentik_flow.invalidation.id
-  mode               = "forward_single"
-  name               = "${var.application_name} Browser Access (${each.value.host})"
-  property_mappings  = local.browser_proxy_property_mapping_ids
+  stage  = authentik_stage_user_login.google_enrollment.id
+  target = authentik_flow.google_enrollment.uuid
 }
 
 # Authentik Group
@@ -238,8 +94,8 @@ resource "authentik_provider_proxy" "browser" {
 # Every user provisioned through any Authentik source (not just Google) lands here by default;
 # route_auth_policies can grant baseline access platform-wide by requiring this group.
 resource "authentik_group" "all" {
-  name         = local.all_group_name
   is_superuser = false
+  name         = local.all_group_name
 }
 
 resource "authentik_group" "application" {
@@ -254,37 +110,53 @@ resource "authentik_group" "application" {
 resource "authentik_group" "browser" {
   for_each = local.browser_groups
 
-  name         = each.value.group
   is_superuser = false
+  name         = each.value.group
+}
+
+# Authentik Outpost
+# https://registry.terraform.io/providers/goauthentik/authentik/latest/docs/resources/outpost
+
+# The embedded outpost ships with Authentik and runs inside the authentik-server pods, so it
+# needs no service connection or managed Kubernetes deployment. Consumers import it (an import
+# block in the root module, keyed on its name) so this resource assigns the proxy provider to
+# it, which makes each regional authentik-server serve forward-auth locally for Istio.
+resource "authentik_outpost" "embedded" {
+  config             = local.outpost_config
+  name               = local.embedded_outpost_name
+  protocol_providers = local.outpost_provider_ids
+  type               = "proxy"
 }
 
 # Authentik Policy Binding
 # https://registry.terraform.io/providers/goauthentik/authentik/latest/docs/resources/policy_binding
 
-resource "authentik_policy_binding" "google_authentication_sso" {
-  count = local.application_groups_enabled_count
-
-  failure_result = false
-  order          = 0
-  policy         = authentik_policy_expression.google_authentication_sso[0].id
-  target         = authentik_flow.google_authentication[0].uuid
-}
-
 resource "authentik_policy_binding" "browser_group" {
-  for_each = {
-    for item in local.browser_group_policy_bindings : "${item.host_key}:${item.group}" => item
-  }
+  for_each = local.browser_group_policy_binding_map
 
   group  = local.browser_policy_group_ids[each.value.group]
   order  = 0
   target = authentik_application.browser[each.value.host_key].uuid
 }
 
+resource "authentik_policy_binding" "google_authentication_sso" {
+  lifecycle {
+    enabled = local.application_groups_enabled
+  }
+
+  failure_result = false
+  order          = 0
+  policy         = authentik_policy_expression.google_authentication_sso.id
+  target         = authentik_flow.google_authentication.uuid
+}
+
 # Authentik Expression Policy
 # https://registry.terraform.io/providers/goauthentik/authentik/latest/docs/resources/policy_expression
 
 resource "authentik_policy_expression" "google_authentication_sso" {
-  count = local.application_groups_enabled_count
+  lifecycle {
+    enabled = local.application_groups_enabled
+  }
 
   expression = "return ak_is_sso_flow"
   name       = "Google Source Authentication - Require SSO"
@@ -294,7 +166,9 @@ resource "authentik_policy_expression" "google_authentication_sso" {
 # https://registry.terraform.io/providers/goauthentik/authentik/latest/docs/resources/property_mapping_provider_scope
 
 resource "authentik_property_mapping_provider_scope" "google_proxy" {
-  count = local.application_groups_enabled_count
+  lifecycle {
+    enabled = local.application_groups_enabled
+  }
 
   expression = local.google_proxy_mapping_expression
   name       = "Gateway - verified Google proxy identity"
@@ -317,21 +191,156 @@ resource "authentik_property_mapping_provider_scope" "roles" {
   scope_name = "roles"
 }
 
-# Authentik Outpost
-# https://registry.terraform.io/providers/goauthentik/authentik/latest/docs/resources/outpost
+# Authentik OAuth Source Property Mapping
+# https://registry.terraform.io/providers/goauthentik/authentik/latest/docs/resources/property_mapping_source_oauth
 
-# The embedded outpost ships with Authentik and runs inside the authentik-server pods, so it
-# needs no service connection or managed Kubernetes deployment. Consumers import it (an import
-# block in the root module, keyed on its name) so this resource assigns the proxy provider to
-# it, which makes each regional authentik-server serve forward-auth locally for Istio.
-resource "authentik_outpost" "embedded" {
-  config = jsonencode({
-    authentik_host = local.outpost_authentik_url
-  })
-  name = local.embedded_outpost_name
-  protocol_providers = concat(
-    [authentik_provider_proxy.gateway.id],
-    [for provider in authentik_provider_proxy.browser : provider.id],
-  )
-  type = "proxy"
+resource "authentik_property_mapping_source_oauth" "google_application_groups" {
+  lifecycle {
+    enabled = local.application_groups_enabled
+  }
+
+  expression = local.google_group_mapping_expression
+  name       = "Google - Logos application groups"
+}
+
+resource "authentik_property_mapping_source_oauth" "google_username" {
+  lifecycle {
+    enabled = local.google_oauth_enabled
+  }
+
+  expression = <<-EOT
+    return {"username": info.get("email")}
+  EOT
+  name       = "Google - email as username"
+}
+
+# Authentik OAuth2 Provider
+# https://registry.terraform.io/providers/goauthentik/authentik/latest/docs/resources/provider_oauth2
+
+resource "authentik_provider_oauth2" "gateway" {
+  allowed_redirect_uris = var.redirect_uris
+  authorization_flow    = data.authentik_flow.authorization.id
+  client_id             = var.client_id
+  client_type           = "confidential"
+  invalidation_flow     = data.authentik_flow.invalidation.id
+  issuer_mode           = "per_provider"
+  name                  = var.application_name
+
+  property_mappings = [
+    data.authentik_property_mapping_provider_scope.openid.id,
+    data.authentik_property_mapping_provider_scope.email.id,
+    data.authentik_property_mapping_provider_scope.profile.id,
+    authentik_property_mapping_provider_scope.groups.id,
+    authentik_property_mapping_provider_scope.roles.id,
+  ]
+
+  signing_key = data.authentik_certificate_key_pair.signing.id
+  sub_mode    = "user_email"
+}
+
+# Authentik Proxy Provider (forward-auth)
+# https://registry.terraform.io/providers/goauthentik/authentik/latest/docs/resources/provider_proxy
+
+resource "authentik_provider_proxy" "browser" {
+  for_each = var.browser_group_policy_bindings
+
+  authorization_flow = data.authentik_flow.authorization.id
+  external_host      = each.value.host
+  invalidation_flow  = data.authentik_flow.invalidation.id
+  mode               = "forward_single"
+  name               = local.browser_application_names[each.key]
+  property_mappings  = local.browser_proxy_property_mapping_ids
+}
+
+resource "authentik_provider_proxy" "gateway" {
+  authorization_flow = data.authentik_flow.authorization.id
+  external_host      = var.external_host
+  invalidation_flow  = data.authentik_flow.invalidation.id
+  mode               = "forward_single"
+  name               = local.forward_auth_provider_name
+  property_mappings  = local.proxy_default_property_mapping_ids
+}
+
+# Authentik Google OAuth Source
+# https://registry.terraform.io/providers/goauthentik/authentik/latest/docs/resources/source_oauth
+
+resource "authentik_source_oauth" "google" {
+  lifecycle {
+    enabled = local.google_oauth_enabled
+  }
+
+  access_token_url    = "https://oauth2.googleapis.com/token"
+  authentication_flow = local.google_authentication_flow_id
+  authorization_url   = "https://accounts.google.com/o/oauth2/v2/auth"
+  consumer_key        = var.google_oauth_client_id
+  consumer_secret     = var.google_oauth_client_secret
+  enrollment_flow     = authentik_flow.google_enrollment.uuid
+  group_matching_mode = local.google_group_matching_mode
+  name                = "Google"
+  oidc_jwks_url       = "https://www.googleapis.com/oauth2/v3/certs"
+  profile_url         = "https://openidconnect.googleapis.com/v1/userinfo"
+  property_mappings   = local.google_source_property_mapping_ids
+  provider_type       = "google"
+  slug                = "google"
+}
+
+# Authentik Stage
+# https://registry.terraform.io/providers/goauthentik/authentik/latest/docs/resources/stage_identification
+
+# The default authentication flow's identification stage is a pre-existing, shared object.
+# Consumers import it while management is enabled and pass any independently managed source UUIDs
+# so adding or removing Google preserves the stage and its complete source list.
+resource "authentik_stage_identification" "default_authentication" {
+  lifecycle {
+    enabled = local.default_authentication_stage_managed
+  }
+
+  captcha_stage             = var.default_authentication_stage_settings.captcha_stage
+  case_insensitive_matching = var.default_authentication_stage_settings.case_insensitive_matching
+  enable_remember_me        = var.default_authentication_stage_settings.enable_remember_me
+  enrollment_flow           = var.default_authentication_stage_settings.enrollment_flow
+  name                      = local.default_authentication_identification_stage_name
+  password_stage            = var.default_authentication_stage_settings.password_stage
+  passwordless_flow         = var.default_authentication_stage_settings.passwordless_flow
+  pretend_user_exists       = var.default_authentication_stage_settings.pretend_user_exists
+  recovery_flow             = var.default_authentication_stage_settings.recovery_flow
+  show_matched_user         = var.default_authentication_stage_settings.show_matched_user
+  show_source_labels        = var.default_authentication_stage_settings.show_source_labels
+  sources                   = local.default_authentication_stage_sources
+  user_fields               = var.default_authentication_stage_settings.user_fields
+  webauthn_stage            = var.default_authentication_stage_settings.webauthn_stage
+}
+
+# Authentik Stage User Login
+# https://registry.terraform.io/providers/goauthentik/authentik/latest/docs/resources/stage_user_login
+
+resource "authentik_stage_user_login" "google_enrollment" {
+  lifecycle {
+    enabled = local.google_oauth_enabled
+  }
+
+  name = "Google Source Enrollment - User Login"
+}
+
+# Authentik Stage User Write
+# https://registry.terraform.io/providers/goauthentik/authentik/latest/docs/resources/stage_user_write
+
+resource "authentik_stage_user_write" "google_authentication" {
+  lifecycle {
+    enabled = local.application_groups_enabled
+  }
+
+  name               = "Google Source Authentication - User Write"
+  user_creation_mode = "never_create"
+}
+
+resource "authentik_stage_user_write" "google_enrollment" {
+  lifecycle {
+    enabled = local.google_oauth_enabled
+  }
+
+  create_users_as_inactive = false
+  create_users_group       = authentik_group.all.id
+  name                     = "Google Source Enrollment - User Write"
+  user_creation_mode       = "create_when_required"
 }

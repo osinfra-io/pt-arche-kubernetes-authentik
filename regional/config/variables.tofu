@@ -1,25 +1,6 @@
 # Input Variables
 # https://opentofu.org/docs/language/values/variables
 
-variable "application_name" {
-  default     = "Platform Gateway"
-  description = "The display name of the Authentik application for the gateway"
-  type        = string
-}
-
-variable "application_launch_url" {
-  default     = null
-  description = "Optional URL shown as the launch link for the Authentik application"
-  nullable    = true
-  type        = string
-}
-
-variable "application_slug" {
-  default     = "gateway"
-  description = "The slug of the Authentik application, used in the OIDC issuer URL"
-  type        = string
-}
-
 variable "application_groups" {
   default     = {}
   description = "Team-owned application access groups keyed by stable team/group identifiers. Names include the team key, for example pt-pneuma: agentgateway Admins. Members are lowercase verified Google emails for the current environment."
@@ -46,7 +27,25 @@ variable "application_groups" {
     condition     = length(var.application_groups) == 0 || local.google_oauth_enabled
     error_message = "Managed application groups require the existing Google OAuth source to be enabled."
   }
+}
 
+variable "application_launch_url" {
+  default     = null
+  description = "Optional URL shown as the launch link for the Authentik application"
+  nullable    = true
+  type        = string
+}
+
+variable "application_name" {
+  default     = "Platform Gateway"
+  description = "The display name of the Authentik application for the gateway"
+  type        = string
+}
+
+variable "application_slug" {
+  default     = "gateway"
+  description = "The slug of the Authentik application, used in the OIDC issuer URL"
+  type        = string
 }
 
 variable "authentik_url" {
@@ -59,13 +58,19 @@ variable "authentik_url" {
   }
 }
 
+variable "authorization_flow_slug" {
+  default     = "default-provider-authorization-implicit-consent"
+  description = "The slug of the Authentik authorization flow to use for the providers"
+  type        = string
+}
+
 variable "browser_group_policy_bindings" {
+  default     = {}
   description = "Per-host Authentik browser policy bindings. Each host creates a dedicated proxy application and binds every listed Authentik group to that application so browser routes can enforce group membership."
   type = map(object({
     groups = list(string)
     host   = string
   }))
-  default = {}
 
   validation {
     condition = alltrue([
@@ -76,12 +81,6 @@ variable "browser_group_policy_bindings" {
     ])
     error_message = "Each browser_group_policy_bindings entry must declare a public HTTPS host and a non-empty, duplicate-free list of Authentik group names."
   }
-}
-
-variable "authorization_flow_slug" {
-  default     = "default-provider-authorization-implicit-consent"
-  description = "The slug of the Authentik authorization flow to use for the providers"
-  type        = string
 }
 
 variable "client_id" {

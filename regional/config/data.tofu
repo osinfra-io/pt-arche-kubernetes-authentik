@@ -47,5 +47,7 @@ data "authentik_property_mapping_provider_scope" "proxy" {
 # https://registry.terraform.io/providers/goauthentik/authentik/latest/docs/data-sources/users
 
 data "authentik_users" "google" {
-  count = local.application_groups_requested_count
+  lifecycle {
+    enabled = local.application_groups_requested
+  }
 }
