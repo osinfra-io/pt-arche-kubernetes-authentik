@@ -37,7 +37,7 @@ variable "application_launch_url" {
 }
 
 variable "application_name" {
-  default     = "Platform Gateway"
+  default     = "Istio Gateway"
   description = "The display name of the Authentik application for the gateway"
   type        = string
 }
