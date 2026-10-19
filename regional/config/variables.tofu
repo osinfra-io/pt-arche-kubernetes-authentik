@@ -75,11 +75,11 @@ variable "browser_group_policy_bindings" {
   validation {
     condition = alltrue([
       for binding in values(var.browser_group_policy_bindings) :
-      startswith(binding.host, "https://") && length(binding.groups) > 0 && length(distinct(binding.groups)) == length(binding.groups) && alltrue([
+      can(regex("^https://[^/]+$", binding.host)) && length(binding.groups) > 0 && length(distinct(binding.groups)) == length(binding.groups) && alltrue([
         for group in binding.groups : length(trimspace(group)) > 0
       ])
     ])
-    error_message = "Each browser_group_policy_bindings entry must declare a public HTTPS host and a non-empty, duplicate-free list of Authentik group names."
+    error_message = "Each browser_group_policy_bindings entry must declare a public HTTPS origin host (no path) and a non-empty, duplicate-free list of Authentik group names."
   }
 }
 
