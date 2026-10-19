@@ -29,7 +29,7 @@ locals {
   authentik_base_url = trimsuffix(var.authentik_url, "/")
 
   browser_application_names = {
-    for key, binding in var.browser_group_policy_bindings : key => "${var.application_name} Browser Access (${binding.host})"
+    for key, binding in var.browser_group_policy_bindings : key => trimprefix(binding.host, "https://")
   }
 
   browser_application_slugs = {
