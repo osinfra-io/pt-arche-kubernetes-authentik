@@ -56,6 +56,22 @@ output "jwks_uri" {
   value       = local.jwks_uri
 }
 
+output "openbao_client_id" {
+  description = "The OAuth2 client ID for OpenBao, or null when its OIDC application is disabled"
+  value       = local.openbao_oidc_enabled ? authentik_provider_oauth2.openbao.client_id : null
+}
+
+output "openbao_client_secret" {
+  description = "The sensitive OAuth2 client secret for OpenBao, or null when its OIDC application is disabled"
+  sensitive   = true
+  value       = local.openbao_oidc_enabled ? authentik_provider_oauth2.openbao.client_secret : null
+}
+
+output "openbao_issuer_url" {
+  description = "The provider-specific Authentik OIDC issuer URL for OpenBao, or null when its OIDC application is disabled"
+  value       = local.openbao_issuer_url
+}
+
 output "outpost_namespace" {
   description = "The namespace of the authentik-server that serves the embedded outpost for Istio ext_authz forward-auth"
   value       = var.namespace

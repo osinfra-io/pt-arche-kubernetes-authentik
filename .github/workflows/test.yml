@@ -19,3 +19,11 @@ jobs:
     if: github.actor != 'dependabot[bot]'
     with:
       opentofu_version: ${{ vars.OPENTOFU_VERSION }}
+
+  regional_config_tests:
+    name: Regional Config Tests
+    uses: osinfra-io/pt-techne-opentofu-workflows/.github/workflows/test.yml@5089361dca1f89054e7517a3c4e335d4e0efbd54 # v0.7.0
+    if: github.actor != 'dependabot[bot]'
+    with:
+      opentofu_version: ${{ vars.OPENTOFU_VERSION }}
+      working_directory: regional/config
