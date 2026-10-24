@@ -48,6 +48,20 @@ mock_provider "authentik" {
 run "openbao_oidc_provider" {
   command = apply
 
+  override_resource {
+    target = authentik_provider_oauth2.openbao
+    values = {
+      id = 14
+    }
+  }
+
+  override_resource {
+    target = authentik_property_mapping_provider_scope.roles
+    values = {
+      id = 15
+    }
+  }
+
   variables {
     authentik_url                       = "https://authentik.example.com"
     external_host                       = "https://gateway.example.com"
