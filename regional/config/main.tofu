@@ -16,6 +16,16 @@ resource "authentik_application" "gateway" {
   slug              = var.application_slug
 }
 
+resource "authentik_application" "openbao" {
+  lifecycle {
+    enabled = local.openbao_oidc_enabled
+  }
+
+  name              = "OpenBao"
+  protocol_provider = authentik_provider_oauth2.openbao.id
+  slug              = "openbao"
+}
+
 # Authentik Flow
 # https://registry.terraform.io/providers/goauthentik/authentik/latest/docs/resources/flow
 
@@ -236,6 +246,32 @@ resource "authentik_provider_oauth2" "gateway" {
 
   signing_key = data.authentik_certificate_key_pair.signing.id
   sub_mode    = "user_email"
+}
+
+resource "authentik_provider_oauth2" "openbao" {
+  lifecycle {
+    enabled = local.openbao_oidc_enabled
+  }
+
+  allowed_redirect_uris = local.openbao_redirect_uris
+  authorization_flow    = data.authentik_flow.authorization.id
+  client_id             = "openbao"
+  client_type           = "confidential"
+  grant_types           = ["authorization_code"]
+  invalidation_flow     = data.authentik_flow.invalidation.id
+  issuer_mode           = "per_provider"
+  name                  = "OpenBao"
+
+  property_mappings = [
+    data.authentik_property_mapping_provider_scope.openid.id,
+    data.authentik_property_mapping_provider_scope.email.id,
+    data.authentik_property_mapping_provider_scope.profile.id,
+    authentik_property_mapping_provider_scope.groups.id,
+    authentik_property_mapping_provider_scope.roles.id,
+  ]
+
+  signing_key = data.authentik_certificate_key_pair.signing.id
+  sub_mode    = "user_uuid"
 }
 
 # Authentik Proxy Provider (forward-auth)

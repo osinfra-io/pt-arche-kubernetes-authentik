@@ -168,6 +168,18 @@ variable "namespace" {
   type        = string
 }
 
+variable "openbao_hostname" {
+  default     = null
+  description = "The canonical OpenBao hostname used to register the OpenBao UI OIDC callback; null disables the dedicated OpenBao application"
+  nullable    = true
+  type        = string
+
+  validation {
+    condition     = var.openbao_hostname == null ? true : can(regex("^[a-z0-9-]+(\\.[a-z0-9-]+)+$", var.openbao_hostname))
+    error_message = "The openbao_hostname must be a lowercase DNS hostname without a scheme, path, or trailing dot."
+  }
+}
+
 variable "outpost_authentik_url" {
   default     = null
   description = "The browser-accessible Authentik base URL used by the embedded outpost; defaults to authentik_url"
