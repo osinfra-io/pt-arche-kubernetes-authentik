@@ -92,7 +92,10 @@ run "openbao_oidc_provider" {
   }
 
   assert {
-    condition = toset(authentik_provider_oauth2.openbao.allowed_redirect_uris[*].url) == toset([
+    condition = alltrue([
+      for uri in authentik_provider_oauth2.openbao.allowed_redirect_uris :
+      uri.matching_mode == "strict" && uri.redirect_uri_type == "authorization"
+      ]) && toset(authentik_provider_oauth2.openbao.allowed_redirect_uris[*].url) == toset([
       "https://openbao.example.com/ui/vault/auth/oidc/oidc/callback",
       "http://localhost:8250/oidc/callback",
     ])

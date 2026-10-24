@@ -163,12 +163,14 @@ locals {
 
   openbao_redirect_uris = local.openbao_oidc_enabled ? [
     {
-      matching_mode = "strict"
-      url           = "https://${var.openbao_hostname}/ui/vault/auth/oidc/oidc/callback"
+      matching_mode     = "strict"
+      redirect_uri_type = "authorization"
+      url               = "https://${var.openbao_hostname}/ui/vault/auth/oidc/oidc/callback"
     },
     {
-      matching_mode = "strict"
-      url           = "http://localhost:8250/oidc/callback"
+      matching_mode     = "strict"
+      redirect_uri_type = "authorization"
+      url               = "http://localhost:8250/oidc/callback"
     },
   ] : []
 
