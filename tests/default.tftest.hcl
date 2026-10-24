@@ -113,6 +113,7 @@ run "proxy_defaults_converge" {
     authentik_url              = "https://authentik.example.com"
     external_host              = "https://gateway.example.com"
     namespace                  = "authentik"
+    openbao_hostname           = "openbao.example.com"
     default_authentication_stage_settings = {
       captcha_stage             = null
       case_insensitive_matching = true
@@ -140,6 +141,11 @@ run "proxy_defaults_converge" {
       toset(authentik_provider_proxy.gateway.property_mappings) == toset(local.proxy_default_property_mapping_ids) &&
     toset(authentik_provider_proxy.browser["https://gateway.example.com"].property_mappings) == toset(local.proxy_default_property_mapping_ids))
     error_message = "Both proxy types must explicitly retain all five server-enforced default mappings."
+  }
+
+  assert {
+    condition     = contains(authentik_provider_oauth2.openbao.grant_types, "authorization_code")
+    error_message = "OpenBao OIDC login requires the authorization-code grant."
   }
 }
 

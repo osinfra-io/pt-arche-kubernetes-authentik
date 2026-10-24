@@ -257,6 +257,7 @@ resource "authentik_provider_oauth2" "openbao" {
   authorization_flow    = data.authentik_flow.authorization.id
   client_id             = "openbao"
   client_type           = "confidential"
+  grant_types           = ["authorization_code"]
   invalidation_flow     = data.authentik_flow.invalidation.id
   issuer_mode           = "per_provider"
   name                  = "OpenBao"
