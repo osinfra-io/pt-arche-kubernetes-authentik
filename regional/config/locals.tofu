@@ -157,6 +157,23 @@ locals {
 
   jwks_uri = "${local.authentik_base_url}/application/o/${var.application_slug}/jwks/"
 
+  openbao_issuer_url = local.openbao_oidc_enabled ? "${local.authentik_base_url}/application/o/openbao/" : null
+
+  openbao_oidc_enabled = var.openbao_hostname != null
+
+  openbao_redirect_uris = local.openbao_oidc_enabled ? [
+    {
+      matching_mode     = "strict"
+      redirect_uri_type = "authorization"
+      url               = "https://${var.openbao_hostname}/ui/vault/auth/oidc/oidc/callback"
+    },
+    {
+      matching_mode     = "strict"
+      redirect_uri_type = "authorization"
+      url               = "http://localhost:8250/oidc/callback"
+    },
+  ] : []
+
   outpost_authentik_url = var.outpost_authentik_url != null ? var.outpost_authentik_url : var.authentik_url
 
   outpost_config = jsonencode({
