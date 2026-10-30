@@ -38,7 +38,7 @@ resource "authentik_application" "openbao" {
 
 resource "authentik_flow" "google_authentication" {
   lifecycle {
-    enabled = local.application_groups_enabled
+    enabled = local.google_oauth_enabled
   }
 
   authentication = "require_unauthenticated"
@@ -67,7 +67,7 @@ resource "authentik_flow" "google_enrollment" {
 
 resource "authentik_flow_stage_binding" "google_authentication" {
   lifecycle {
-    enabled = local.application_groups_enabled
+    enabled = local.google_oauth_enabled
   }
 
   order  = 0
@@ -77,7 +77,7 @@ resource "authentik_flow_stage_binding" "google_authentication" {
 
 resource "authentik_flow_stage_binding" "google_authentication_login" {
   lifecycle {
-    enabled = local.application_groups_enabled
+    enabled = local.google_oauth_enabled
   }
 
   order  = 1
@@ -159,7 +159,7 @@ resource "authentik_policy_binding" "browser_access" {
 
 resource "authentik_policy_binding" "google_authentication_sso" {
   lifecycle {
-    enabled = local.application_groups_enabled
+    enabled = local.google_oauth_enabled
   }
 
   failure_result = false
@@ -180,7 +180,7 @@ resource "authentik_policy_expression" "browser_access" {
 
 resource "authentik_policy_expression" "google_authentication_sso" {
   lifecycle {
-    enabled = local.application_groups_enabled
+    enabled = local.google_oauth_enabled
   }
 
   expression = "return ak_is_sso_flow"
@@ -377,7 +377,7 @@ resource "authentik_stage_user_login" "google_enrollment" {
 
 resource "authentik_stage_user_write" "google_authentication" {
   lifecycle {
-    enabled = local.application_groups_enabled
+    enabled = local.google_oauth_enabled
   }
 
   name               = "Google Source Authentication - User Write"

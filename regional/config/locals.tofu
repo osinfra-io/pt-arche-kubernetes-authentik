@@ -102,9 +102,9 @@ locals {
 
   forward_auth_provider_name = "${var.application_name} forward-auth"
 
-  google_authentication_flow_id = local.application_groups_enabled ? authentik_flow.google_authentication.uuid : data.authentik_flow.default_source_authentication.id
+  google_authentication_flow_id = local.google_oauth_enabled ? authentik_flow.google_authentication.uuid : data.authentik_flow.default_source_authentication.id
 
-  google_authentication_user_write_stages = local.application_groups_enabled ? [authentik_stage_user_write.google_authentication] : []
+  google_authentication_user_write_stages = local.google_oauth_enabled ? [authentik_stage_user_write.google_authentication] : []
 
   google_group_mapping_expression = <<-EOT
     import json
