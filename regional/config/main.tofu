@@ -2,11 +2,18 @@
 # https://registry.terraform.io/providers/goauthentik/authentik/latest/docs/resources/application
 
 resource "authentik_application" "browser" {
+  depends_on = [
+    authentik_group.all,
+    authentik_group.application,
+    authentik_group.browser,
+  ]
+
   for_each = var.browser_group_policy_bindings
 
-  name              = local.browser_application_names[each.key]
-  protocol_provider = authentik_provider_proxy.browser[each.key].id
-  slug              = local.browser_application_slugs[each.key]
+  name               = local.browser_application_names[each.key]
+  policy_engine_mode = "all"
+  protocol_provider  = authentik_provider_proxy.browser[each.key].id
+  slug               = local.browser_application_slugs[each.key]
 }
 
 resource "authentik_application" "gateway" {
@@ -141,12 +148,13 @@ resource "authentik_outpost" "embedded" {
 # Authentik Policy Binding
 # https://registry.terraform.io/providers/goauthentik/authentik/latest/docs/resources/policy_binding
 
-resource "authentik_policy_binding" "browser_group" {
-  for_each = local.browser_group_policy_binding_map
+resource "authentik_policy_binding" "browser_access" {
+  for_each = var.browser_group_policy_bindings
 
-  group  = local.browser_policy_group_ids[each.value.group]
-  order  = 0
-  target = authentik_application.browser[each.value.host_key].uuid
+  failure_result = false
+  order          = 0
+  policy         = authentik_policy_expression.browser_access[each.key].id
+  target         = authentik_application.browser[each.key].uuid
 }
 
 resource "authentik_policy_binding" "google_authentication_sso" {
@@ -162,6 +170,13 @@ resource "authentik_policy_binding" "google_authentication_sso" {
 
 # Authentik Expression Policy
 # https://registry.terraform.io/providers/goauthentik/authentik/latest/docs/resources/policy_expression
+
+resource "authentik_policy_expression" "browser_access" {
+  for_each = var.browser_group_policy_bindings
+
+  expression = local.browser_access_policy_expressions[each.key]
+  name       = local.browser_access_policy_names[each.key]
+}
 
 resource "authentik_policy_expression" "google_authentication_sso" {
   lifecycle {
@@ -280,12 +295,13 @@ resource "authentik_provider_oauth2" "openbao" {
 resource "authentik_provider_proxy" "browser" {
   for_each = var.browser_group_policy_bindings
 
-  authorization_flow = data.authentik_flow.authorization.id
-  external_host      = each.value.host
-  invalidation_flow  = data.authentik_flow.invalidation.id
-  mode               = "forward_single"
-  name               = local.browser_application_names[each.key]
-  property_mappings  = local.browser_proxy_property_mapping_ids
+  access_token_validity = "minutes=10"
+  authorization_flow    = data.authentik_flow.authorization.id
+  external_host         = each.value.host
+  invalidation_flow     = data.authentik_flow.invalidation.id
+  mode                  = "forward_single"
+  name                  = local.browser_application_names[each.key]
+  property_mappings     = local.browser_proxy_property_mapping_ids
 }
 
 resource "authentik_provider_proxy" "gateway" {

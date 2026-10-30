@@ -51,7 +51,7 @@ module "test" {
 }
 
 output "browser_group_policy_binding_count" {
-  description = "Number of per-group Authentik browser policy bindings created by the fixture"
+  description = "Number of per-host Authentik browser policy bindings created by the fixture"
   value       = length(module.test.browser_policy_bindings)
 }
 

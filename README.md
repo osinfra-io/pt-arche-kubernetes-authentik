@@ -19,7 +19,11 @@ Provide external PostgreSQL and an existing Secret containing bootstrap and data
 
 Application-access groups use team-qualified names such as `pt-pneuma: agentgateway Admins`; they never grant Authentik administrative privileges. Verified Google sign-ins receive declared memberships, and configuration deployment reconciles already-verified users. Existing users must complete Google sign-in after enabling the mapping so their verified identity is recorded. Pending members are reported separately; no accounts or passwords are pre-provisioned.
 
-Review existing-group ownership and import/move requirements before adopting membership management. Reconciliation owns only declared application groups and leaves unrelated groups alone. Group synchronization alone does not provide independent path authorization or revoke cached browser sessions; consumers must enforce those separately before exposing differently authorized applications on one host.
+Review existing-group ownership and import/move requirements before adopting membership management. Reconciliation owns only declared application groups and leaves unrelated groups alone.
+
+Browser applications enforce OR within required groups and roles, and AND between the two lists, through one Authentik expression policy per host. Roles refer to Authentik group names. Team-qualified requirements additionally require an active user with a matching verified-Google email marker and a current Google source connection. The expression disables policy-result caching. Use distinct hosts for different access rules; this module does not perform path-specific authorization. Existing outpost sessions can retain authorization until their explicitly configured ten-minute lifetime expires; changing membership or unlinking Google does not immediately revoke cached sessions.
+
+Upgrading replaces the old per-group browser policy bindings with per-host expression bindings; `browser_policy_bindings` output keys change from `<host>:<group>` to the configured host keys. Apply Authentik configuration before removing any downstream authorization guard, and review the plan to ensure no group-only bindings remain.
 
 > [!TIP]
 > You can check the [tests/fixtures](tests/fixtures) directory for example configurations. These fixtures set up the system for testing by providing all the necessary initial code, thus creating good examples on which to base your configurations.
