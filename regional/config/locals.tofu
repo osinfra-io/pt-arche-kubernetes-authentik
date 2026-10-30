@@ -55,7 +55,7 @@ locals {
               or not UserOAuthSourceConnection.objects.filter(user=user, source__slug="google").exists()
           ):
               return False
-      memberships = set(user.ak_groups.values_list("name", flat=True))
+      memberships = set(user.all_groups().values_list("name", flat=True))
       return all(
           not required or any(name in memberships for name in required)
           for required in (requirements["groups"], requirements["roles"])

@@ -61,12 +61,16 @@ class BrowserAccessPolicyTest(unittest.TestCase):
             email="member@example.com",
             attributes={"osinfra_google_email": "member@example.com"},
             ak_groups=Mock(),
+            all_groups=Mock(),
         )
         self.connection = Mock()
         self.connection.objects.filter.return_value.exists.return_value = True
 
-    def allows(self, memberships, policy="managed"):
+    def allows(self, memberships, policy="managed", inherited=()):
         self.user.ak_groups.values_list.return_value = memberships
+        self.user.all_groups.return_value.values_list.return_value = [
+            *memberships, *inherited,
+        ]
         request = PolicyRequest(self.user)
         namespace = {"request": request}
         exec(
@@ -115,6 +119,12 @@ class BrowserAccessPolicyTest(unittest.TestCase):
     def test_roles_only_and_membership_removal(self):
         self.assertTrue(self.allows([ADMIN], "roles_only"))
         self.assertFalse(self.allows([], "roles_only"))
+
+    def test_child_group_inherits_required_parent_access(self):
+        child = "pt-pneuma: agentgateway Operators"
+        self.assertTrue(self.allows(["all", child], inherited=[ADMIN]))
+        self.assertFalse(self.allows(["all", child]))
+        self.assertFalse(self.allows([child], inherited=[ADMIN]))
 
     def test_baseline_does_not_require_google(self):
         self.user.attributes = {}
