@@ -123,6 +123,22 @@ locals {
 
   google_group_matching_mode = length(var.application_groups) > 0 ? "name_link" : "identifier"
 
+  google_identity_mapping_expression = <<-EOT
+    import json
+    domains = json.loads(${jsonencode(jsonencode(var.google_internal_domains))})
+    email = info.get("email", "")
+    verification = [info[key] for key in ("email_verified", "verified_email") if key in info]
+    internal = (
+        bool(verification)
+        and all(value is True for value in verification)
+        and isinstance(email, str)
+        and email.count("@") == 1
+        and email.rsplit("@", 1)[1].lower() == info.get("hd")
+        and info.get("hd") in domains
+    )
+    return {"username": email, "type": "internal" if internal else "external"}
+  EOT
+
   google_oauth_enabled = nonsensitive(var.google_oauth_client_id != "" && var.google_oauth_client_secret != "")
 
   google_proxy_mapping_expression = <<-EOT

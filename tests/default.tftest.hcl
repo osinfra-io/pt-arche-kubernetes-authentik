@@ -225,7 +225,13 @@ run "managed_application_membership" {
   }
 
   variables {
+    superuser_group_keys = ["pt-pneuma-authentik-admins"]
     application_groups = {
+      pt-pneuma-authentik-admins = {
+        description = "Authentik instance administration"
+        members     = ["member@example.com"]
+        name        = "pt-pneuma: authentik Admins"
+      }
       pt-pneuma-agentgateway-admins = {
         description = "agentgateway UI access"
         members     = ["member@example.com", "new@example.com"]
@@ -279,6 +285,11 @@ run "managed_application_membership" {
   assert {
     condition     = output.application_groups["pt-pneuma-agentgateway-admins"].name == "pt-pneuma: agentgateway Admins" && !output.application_groups["pt-pneuma-agentgateway-admins"].is_superuser && output.application_groups["pt-pneuma-agentgateway-admins"].users == tolist([101])
     error_message = "Only a verified Google identity may join the non-superuser application group; preserve the display name."
+  }
+
+  assert {
+    condition     = output.application_groups["pt-pneuma-authentik-admins"].name == "pt-pneuma: authentik Admins" && output.application_groups["pt-pneuma-authentik-admins"].is_superuser && output.application_groups["pt-pneuma-authentik-admins"].users == tolist([101])
+    error_message = "Only an explicitly selected, verified group may receive Authentik superuser privileges."
   }
 
   assert {

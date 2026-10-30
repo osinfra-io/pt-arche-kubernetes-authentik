@@ -29,6 +29,22 @@ variable "application_groups" {
   }
 }
 
+variable "superuser_group_keys" {
+  default     = []
+  description = "Keys in application_groups whose memberships receive Authentik-wide superuser permissions."
+  type        = set(string)
+
+  validation {
+    condition     = length(setsubtract(var.superuser_group_keys, toset(keys(var.application_groups)))) == 0
+    error_message = "Every superuser_group_keys entry must identify a declared application group."
+  }
+
+  validation {
+    condition     = length(var.superuser_group_keys) == 0 || local.google_oauth_enabled
+    error_message = "Authentik superuser groups require the existing Google OAuth source to be enabled."
+  }
+}
+
 variable "application_launch_url" {
   default     = null
   description = "Optional URL shown as the launch link for the Authentik application"
@@ -134,6 +150,20 @@ variable "external_host" {
   validation {
     condition     = startswith(var.external_host, "https://")
     error_message = "The external_host must be a public HTTPS URL (starting with https://)."
+  }
+}
+
+variable "google_internal_domains" {
+  default     = []
+  description = "Google Workspace domains whose verified users are classified as internal; other Google users remain external."
+  type        = set(string)
+
+  validation {
+    condition = alltrue([
+      for domain in var.google_internal_domains :
+      can(regex("^[a-z0-9-]+(\\.[a-z0-9-]+)+$", domain))
+    ])
+    error_message = "Google internal domains must be lowercase DNS domain names without a scheme or path."
   }
 }
 

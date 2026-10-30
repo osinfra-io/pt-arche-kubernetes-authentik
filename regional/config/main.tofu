@@ -119,7 +119,7 @@ resource "authentik_group" "application" {
   for_each = var.application_groups
 
   attributes   = local.application_group_attributes[each.key]
-  is_superuser = false
+  is_superuser = contains(var.superuser_group_keys, each.key)
   name         = each.value.name
   users        = local.application_group_users[each.key]
 }
@@ -233,9 +233,7 @@ resource "authentik_property_mapping_source_oauth" "google_username" {
     enabled = local.google_oauth_enabled
   }
 
-  expression = <<-EOT
-    return {"username": info.get("email")}
-  EOT
+  expression = local.google_identity_mapping_expression
   name       = "Google - email as username"
 }
 
