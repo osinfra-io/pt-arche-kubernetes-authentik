@@ -29,7 +29,7 @@ locals {
   authentik_base_url = trimsuffix(var.authentik_url, "/")
 
   browser_application_names = {
-    for key, binding in var.browser_group_policy_bindings : key => trimprefix(binding.host, "https://")
+    for key, binding in var.browser_group_policy_bindings : key => coalesce(binding.name, trimprefix(binding.host, "https://"))
   }
 
   browser_application_slugs = {
@@ -182,9 +182,9 @@ locals {
 
   # Per-provider issuer mode: the issuer and JWKS live under the application slug.
   # https://docs.goauthentik.io/add-secure-apps/providers/oauth2
-  issuer_url = "${local.authentik_base_url}/application/o/${var.application_slug}/"
+  issuer_url = var.gateway_oidc_enabled ? "${local.authentik_base_url}/application/o/${var.application_slug}/" : null
 
-  jwks_uri = "${local.authentik_base_url}/application/o/${var.application_slug}/jwks/"
+  jwks_uri = var.gateway_oidc_enabled ? "${local.authentik_base_url}/application/o/${var.application_slug}/jwks/" : null
 
   openbao_issuer_url = local.openbao_oidc_enabled ? "${local.authentik_base_url}/application/o/openbao/" : null
 

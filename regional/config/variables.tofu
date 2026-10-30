@@ -84,9 +84,12 @@ variable "browser_group_policy_bindings" {
   default     = {}
   description = "Per-host browser authorization. Groups and roles each use OR, with AND between the lists; roles are Authentik group names. Team-qualified requirements additionally require an active, Google-linked verified identity."
   type = map(object({
-    groups = optional(list(string), [])
-    host   = string
-    roles  = optional(list(string), [])
+    groups     = optional(list(string), [])
+    host       = string
+    icon       = optional(string)
+    launch_url = optional(string)
+    name       = optional(string)
+    roles      = optional(list(string), [])
   }))
 
   validation {
@@ -153,6 +156,12 @@ variable "external_host" {
   }
 }
 
+variable "gateway_oidc_enabled" {
+  default     = true
+  description = "Create the gateway OIDC application and provider independently of browser forward-auth applications."
+  type        = bool
+}
+
 variable "google_internal_domains" {
   default     = []
   description = "Google Workspace domains whose verified users are classified as internal; other Google users remain external."
@@ -199,6 +208,12 @@ variable "manage_default_authentication_stage" {
 
 variable "namespace" {
   description = "The Kubernetes namespace the authentik-server is deployed into, which serves the embedded outpost"
+  type        = string
+}
+
+variable "openbao_application_icon" {
+  default     = null
+  description = "Optional icon URL for the OpenBao application."
   type        = string
 }
 

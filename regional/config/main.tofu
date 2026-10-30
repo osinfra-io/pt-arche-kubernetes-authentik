@@ -10,6 +10,8 @@ resource "authentik_application" "browser" {
 
   for_each = var.browser_group_policy_bindings
 
+  meta_icon          = each.value.icon
+  meta_launch_url    = each.value.launch_url
   name               = local.browser_application_names[each.key]
   policy_engine_mode = "all"
   protocol_provider  = authentik_provider_proxy.browser[each.key].id
@@ -17,6 +19,10 @@ resource "authentik_application" "browser" {
 }
 
 resource "authentik_application" "gateway" {
+  lifecycle {
+    enabled = var.gateway_oidc_enabled
+  }
+
   meta_launch_url   = var.application_launch_url
   name              = var.application_name
   protocol_provider = authentik_provider_oauth2.gateway.id
@@ -28,6 +34,7 @@ resource "authentik_application" "openbao" {
     enabled = local.openbao_oidc_enabled
   }
 
+  meta_icon         = var.openbao_application_icon
   name              = "OpenBao"
   protocol_provider = authentik_provider_oauth2.openbao.id
   slug              = "openbao"
@@ -241,6 +248,10 @@ resource "authentik_property_mapping_source_oauth" "google_username" {
 # https://registry.terraform.io/providers/goauthentik/authentik/latest/docs/resources/provider_oauth2
 
 resource "authentik_provider_oauth2" "gateway" {
+  lifecycle {
+    enabled = var.gateway_oidc_enabled
+  }
+
   allowed_redirect_uris = var.redirect_uris
   authorization_flow    = data.authentik_flow.authorization.id
   client_id             = var.client_id
