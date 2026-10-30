@@ -161,6 +161,109 @@ run "proxy_defaults_converge" {
   }
 }
 
+run "google_identity_without_application_groups" {
+  command = apply
+
+  module {
+    source = "./regional/config"
+  }
+
+  variables {
+    application_groups = {}
+    authentik_url      = "https://authentik.example.com"
+    default_authentication_stage_settings = {
+      captcha_stage             = null
+      case_insensitive_matching = true
+      enable_remember_me        = false
+      enrollment_flow           = null
+      password_stage            = null
+      passwordless_flow         = null
+      pretend_user_exists       = true
+      recovery_flow             = null
+      show_matched_user         = true
+      show_source_labels        = false
+      user_fields               = ["email", "username"]
+      webauthn_stage            = null
+    }
+    external_host                       = "https://gateway.example.com"
+    google_internal_domains             = ["osinfra.io"]
+    google_oauth_client_id              = "test-client"
+    google_oauth_client_secret          = "test-secret"
+    manage_default_authentication_stage = true
+    namespace                           = "authentik"
+  }
+
+  assert {
+    condition = (
+      authentik_source_oauth.google.authentication_flow == authentik_flow.google_authentication.uuid &&
+      authentik_flow_stage_binding.google_authentication.target == authentik_flow.google_authentication.uuid &&
+      authentik_flow_stage_binding.google_authentication.stage == authentik_stage_user_write.google_authentication.id &&
+      authentik_stage_user_write.google_authentication.user_creation_mode == "never_create" &&
+      authentik_flow_stage_binding.google_authentication.order < authentik_flow_stage_binding.google_authentication_login.order &&
+      authentik_flow_stage_binding.google_authentication_login.target == authentik_flow.google_authentication.uuid &&
+      authentik_flow_stage_binding.google_authentication_login.stage == authentik_stage_user_login.google_enrollment.id
+    )
+    error_message = "Google sign-in without application groups must persist existing-user updates before login."
+  }
+
+  assert {
+    condition = (
+      toset(authentik_source_oauth.google.property_mappings) == toset([authentik_property_mapping_source_oauth.google_username.id]) &&
+      authentik_property_mapping_source_oauth.google_username.expression == local.google_identity_mapping_expression &&
+      authentik_policy_binding.google_authentication_sso.target == authentik_flow.google_authentication.uuid &&
+      authentik_policy_binding.google_authentication_sso.policy == authentik_policy_expression.google_authentication_sso.id &&
+      !authentik_policy_binding.google_authentication_sso.failure_result &&
+      authentik_policy_expression.google_authentication_sso.expression == "return ak_is_sso_flow"
+    )
+    error_message = "Identity-only Google sign-in must use the identity mapping and retain its SSO-only policy."
+  }
+}
+
+run "google_identity_allowlist_removed_without_application_groups" {
+  command = apply
+
+  module {
+    source = "./regional/config"
+  }
+
+  variables {
+    application_groups = {}
+    authentik_url      = "https://authentik.example.com"
+    default_authentication_stage_settings = {
+      captcha_stage             = null
+      case_insensitive_matching = true
+      enable_remember_me        = false
+      enrollment_flow           = null
+      password_stage            = null
+      passwordless_flow         = null
+      pretend_user_exists       = true
+      recovery_flow             = null
+      show_matched_user         = true
+      show_source_labels        = false
+      user_fields               = ["email", "username"]
+      webauthn_stage            = null
+    }
+    external_host                       = "https://gateway.example.com"
+    google_internal_domains             = []
+    google_oauth_client_id              = "test-client"
+    google_oauth_client_secret          = "test-secret"
+    manage_default_authentication_stage = true
+    namespace                           = "authentik"
+  }
+
+  assert {
+    condition = (
+      authentik_source_oauth.google.authentication_flow == authentik_flow.google_authentication.uuid &&
+      authentik_flow_stage_binding.google_authentication.stage == authentik_stage_user_write.google_authentication.id &&
+      authentik_flow_stage_binding.google_authentication.target == authentik_flow.google_authentication.uuid &&
+      length(output.google_authentication_user_write_stages) == 1 &&
+      output.google_authentication_user_write_stages[0].user_creation_mode == "never_create" &&
+      authentik_property_mapping_source_oauth.google_username.expression == local.google_identity_mapping_expression
+    )
+    error_message = "Clearing the domain allowlist must retain existing-user writes so the external classification is persisted on sign-in."
+  }
+}
+
 run "google_enabled_regional_config" {
   command = apply
 
@@ -225,7 +328,13 @@ run "managed_application_membership" {
   }
 
   variables {
+    superuser_group_keys = ["pt-pneuma-authentik-admins"]
     application_groups = {
+      pt-pneuma-authentik-admins = {
+        description = "Authentik instance administration"
+        members     = ["member@example.com"]
+        name        = "pt-pneuma: authentik Admins"
+      }
       pt-pneuma-agentgateway-admins = {
         description = "agentgateway UI access"
         members     = ["member@example.com", "new@example.com"]
@@ -279,6 +388,11 @@ run "managed_application_membership" {
   assert {
     condition     = output.application_groups["pt-pneuma-agentgateway-admins"].name == "pt-pneuma: agentgateway Admins" && !output.application_groups["pt-pneuma-agentgateway-admins"].is_superuser && output.application_groups["pt-pneuma-agentgateway-admins"].users == tolist([101])
     error_message = "Only a verified Google identity may join the non-superuser application group; preserve the display name."
+  }
+
+  assert {
+    condition     = output.application_groups["pt-pneuma-authentik-admins"].name == "pt-pneuma: authentik Admins" && output.application_groups["pt-pneuma-authentik-admins"].is_superuser && output.application_groups["pt-pneuma-authentik-admins"].users == tolist([101])
+    error_message = "Only an explicitly selected, verified group may receive Authentik superuser privileges."
   }
 
   assert {

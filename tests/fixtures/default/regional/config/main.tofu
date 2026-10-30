@@ -48,6 +48,7 @@ module "test" {
   google_oauth_client_secret          = var.google_oauth_client_secret
   manage_default_authentication_stage = true
   namespace                           = "authentik"
+  superuser_group_keys                = var.superuser_group_keys
 }
 
 output "browser_group_policy_binding_count" {

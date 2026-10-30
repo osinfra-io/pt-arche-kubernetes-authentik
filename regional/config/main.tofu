@@ -10,6 +10,8 @@ resource "authentik_application" "browser" {
 
   for_each = var.browser_group_policy_bindings
 
+  meta_icon          = each.value.icon
+  meta_launch_url    = each.value.launch_url
   name               = local.browser_application_names[each.key]
   policy_engine_mode = "all"
   protocol_provider  = authentik_provider_proxy.browser[each.key].id
@@ -17,6 +19,10 @@ resource "authentik_application" "browser" {
 }
 
 resource "authentik_application" "gateway" {
+  lifecycle {
+    enabled = var.gateway_oidc_enabled
+  }
+
   meta_launch_url   = var.application_launch_url
   name              = var.application_name
   protocol_provider = authentik_provider_oauth2.gateway.id
@@ -28,6 +34,7 @@ resource "authentik_application" "openbao" {
     enabled = local.openbao_oidc_enabled
   }
 
+  meta_icon         = var.openbao_application_icon
   name              = "OpenBao"
   protocol_provider = authentik_provider_oauth2.openbao.id
   slug              = "openbao"
@@ -38,7 +45,7 @@ resource "authentik_application" "openbao" {
 
 resource "authentik_flow" "google_authentication" {
   lifecycle {
-    enabled = local.application_groups_enabled
+    enabled = local.google_oauth_enabled
   }
 
   authentication = "require_unauthenticated"
@@ -67,7 +74,7 @@ resource "authentik_flow" "google_enrollment" {
 
 resource "authentik_flow_stage_binding" "google_authentication" {
   lifecycle {
-    enabled = local.application_groups_enabled
+    enabled = local.google_oauth_enabled
   }
 
   order  = 0
@@ -77,7 +84,7 @@ resource "authentik_flow_stage_binding" "google_authentication" {
 
 resource "authentik_flow_stage_binding" "google_authentication_login" {
   lifecycle {
-    enabled = local.application_groups_enabled
+    enabled = local.google_oauth_enabled
   }
 
   order  = 1
@@ -119,7 +126,7 @@ resource "authentik_group" "application" {
   for_each = var.application_groups
 
   attributes   = local.application_group_attributes[each.key]
-  is_superuser = false
+  is_superuser = contains(var.superuser_group_keys, each.key)
   name         = each.value.name
   users        = local.application_group_users[each.key]
 }
@@ -159,7 +166,7 @@ resource "authentik_policy_binding" "browser_access" {
 
 resource "authentik_policy_binding" "google_authentication_sso" {
   lifecycle {
-    enabled = local.application_groups_enabled
+    enabled = local.google_oauth_enabled
   }
 
   failure_result = false
@@ -180,7 +187,7 @@ resource "authentik_policy_expression" "browser_access" {
 
 resource "authentik_policy_expression" "google_authentication_sso" {
   lifecycle {
-    enabled = local.application_groups_enabled
+    enabled = local.google_oauth_enabled
   }
 
   expression = "return ak_is_sso_flow"
@@ -233,9 +240,7 @@ resource "authentik_property_mapping_source_oauth" "google_username" {
     enabled = local.google_oauth_enabled
   }
 
-  expression = <<-EOT
-    return {"username": info.get("email")}
-  EOT
+  expression = local.google_identity_mapping_expression
   name       = "Google - email as username"
 }
 
@@ -243,6 +248,10 @@ resource "authentik_property_mapping_source_oauth" "google_username" {
 # https://registry.terraform.io/providers/goauthentik/authentik/latest/docs/resources/provider_oauth2
 
 resource "authentik_provider_oauth2" "gateway" {
+  lifecycle {
+    enabled = var.gateway_oidc_enabled
+  }
+
   allowed_redirect_uris = var.redirect_uris
   authorization_flow    = data.authentik_flow.authorization.id
   client_id             = var.client_id
@@ -379,7 +388,7 @@ resource "authentik_stage_user_login" "google_enrollment" {
 
 resource "authentik_stage_user_write" "google_authentication" {
   lifecycle {
-    enabled = local.application_groups_enabled
+    enabled = local.google_oauth_enabled
   }
 
   name               = "Google Source Authentication - User Write"

@@ -13,3 +13,9 @@ variable "google_oauth_client_secret" {
   sensitive   = true
   type        = string
 }
+
+variable "superuser_group_keys" {
+  default     = []
+  description = "Application groups that receive Authentik-wide superuser permissions in the test fixture"
+  type        = set(string)
+}

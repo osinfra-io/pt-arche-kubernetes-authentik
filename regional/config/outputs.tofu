@@ -2,7 +2,7 @@
 # https://opentofu.org/docs/language/values/outputs
 
 output "application_groups" {
-  description = "Managed non-superuser application groups keyed by stable identifiers"
+  description = "Managed Authentik application groups keyed by stable identifiers, including any explicitly selected superuser groups"
   value       = authentik_group.application
 }
 

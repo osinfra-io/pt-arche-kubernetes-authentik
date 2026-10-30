@@ -29,6 +29,22 @@ variable "application_groups" {
   }
 }
 
+variable "superuser_group_keys" {
+  default     = []
+  description = "Keys in application_groups whose memberships receive Authentik-wide superuser permissions."
+  type        = set(string)
+
+  validation {
+    condition     = length(setsubtract(var.superuser_group_keys, toset(keys(var.application_groups)))) == 0
+    error_message = "Every superuser_group_keys entry must identify a declared application group."
+  }
+
+  validation {
+    condition     = length(var.superuser_group_keys) == 0 || local.google_oauth_enabled
+    error_message = "Authentik superuser groups require the existing Google OAuth source to be enabled."
+  }
+}
+
 variable "application_launch_url" {
   default     = null
   description = "Optional URL shown as the launch link for the Authentik application"
@@ -68,9 +84,12 @@ variable "browser_group_policy_bindings" {
   default     = {}
   description = "Per-host browser authorization. Groups and roles each use OR, with AND between the lists; roles are Authentik group names. Team-qualified requirements additionally require an active, Google-linked verified identity."
   type = map(object({
-    groups = optional(list(string), [])
-    host   = string
-    roles  = optional(list(string), [])
+    groups     = optional(list(string), [])
+    host       = string
+    icon       = optional(string)
+    launch_url = optional(string)
+    name       = optional(string)
+    roles      = optional(list(string), [])
   }))
 
   validation {
@@ -137,6 +156,26 @@ variable "external_host" {
   }
 }
 
+variable "gateway_oidc_enabled" {
+  default     = true
+  description = "Create the gateway OIDC application and provider independently of browser forward-auth applications."
+  type        = bool
+}
+
+variable "google_internal_domains" {
+  default     = []
+  description = "Google Workspace domains whose verified users are classified as internal; other Google users remain external."
+  type        = set(string)
+
+  validation {
+    condition = alltrue([
+      for domain in var.google_internal_domains :
+      can(regex("^[a-z0-9-]+(\\.[a-z0-9-]+)+$", domain))
+    ])
+    error_message = "Google internal domains must be lowercase DNS domain names without a scheme or path."
+  }
+}
+
 variable "google_oauth_client_id" {
   default     = ""
   description = "The OAuth client ID for the optional Google source in Authentik; leave empty to disable the source."
@@ -169,6 +208,12 @@ variable "manage_default_authentication_stage" {
 
 variable "namespace" {
   description = "The Kubernetes namespace the authentik-server is deployed into, which serves the embedded outpost"
+  type        = string
+}
+
+variable "openbao_application_icon" {
+  default     = null
+  description = "Optional icon URL for the OpenBao application."
   type        = string
 }
 
