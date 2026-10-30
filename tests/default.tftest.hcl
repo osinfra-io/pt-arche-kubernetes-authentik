@@ -139,13 +139,25 @@ run "proxy_defaults_converge" {
   assert {
     condition = (length(local.proxy_default_property_mapping_ids) == 5 &&
       toset(authentik_provider_proxy.gateway.property_mappings) == toset(local.proxy_default_property_mapping_ids) &&
-    toset(authentik_provider_proxy.browser["https://gateway.example.com"].property_mappings) == toset(local.proxy_default_property_mapping_ids))
-    error_message = "Both proxy types must explicitly retain all five server-enforced default mappings."
+      toset(authentik_provider_proxy.browser["https://gateway.example.com"].property_mappings) == toset(local.proxy_default_property_mapping_ids) &&
+    authentik_provider_proxy.browser["https://gateway.example.com"].access_token_validity == "minutes=10")
+    error_message = "Browser forward-auth must retain all default mappings and bound cached claims to ten minutes."
   }
 
   assert {
     condition     = contains(authentik_provider_oauth2.openbao.grant_types, "authorization_code")
     error_message = "OpenBao OIDC login requires the authorization-code grant."
+  }
+
+  assert {
+    condition = (
+      length(authentik_policy_binding.browser_access) == 1 &&
+      authentik_application.browser["https://gateway.example.com"].policy_engine_mode == "all" &&
+      !authentik_policy_binding.browser_access["https://gateway.example.com"].failure_result &&
+      authentik_policy_binding.browser_access["https://gateway.example.com"].policy == authentik_policy_expression.browser_access["https://gateway.example.com"].id &&
+      authentik_policy_binding.browser_access["https://gateway.example.com"].target == authentik_application.browser["https://gateway.example.com"].uuid
+    )
+    error_message = "Each browser application must enforce its combined expression policy and fail closed on evaluation errors."
   }
 }
 
@@ -157,8 +169,8 @@ run "google_enabled_regional_config" {
   }
 
   assert {
-    condition     = output.browser_group_policy_binding_count == 2
-    error_message = "The default browser config should create one Authentik policy binding per declared group (2 for this fixture)."
+    condition     = output.browser_group_policy_binding_count == 1
+    error_message = "The browser config must create one combined authorization policy binding per host."
   }
 
   assert {

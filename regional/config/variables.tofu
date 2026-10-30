@@ -66,20 +66,24 @@ variable "authorization_flow_slug" {
 
 variable "browser_group_policy_bindings" {
   default     = {}
-  description = "Per-host Authentik browser policy bindings. Each host creates a dedicated proxy application and binds every listed Authentik group to that application so browser routes can enforce group membership."
+  description = "Per-host browser authorization. Groups and roles each use OR, with AND between the lists; roles are Authentik group names. Team-qualified requirements additionally require an active, Google-linked verified identity."
   type = map(object({
-    groups = list(string)
+    groups = optional(list(string), [])
     host   = string
+    roles  = optional(list(string), [])
   }))
 
   validation {
     condition = alltrue([
       for binding in values(var.browser_group_policy_bindings) :
-      can(regex("^https://[^/]+$", binding.host)) && length(binding.groups) > 0 && length(distinct(binding.groups)) == length(binding.groups) && alltrue([
-        for group in binding.groups : length(trimspace(group)) > 0
+      can(regex("^https://[^/]+$", binding.host)) &&
+      length(concat(binding.groups, binding.roles)) > 0 &&
+      length(distinct(binding.groups)) == length(binding.groups) &&
+      length(distinct(binding.roles)) == length(binding.roles) && alltrue([
+        for group in concat(binding.groups, binding.roles) : length(trimspace(group)) > 0
       ])
     ])
-    error_message = "Each browser_group_policy_bindings entry must declare a public HTTPS origin host (no path) and a non-empty, duplicate-free list of Authentik group names."
+    error_message = "Each browser binding must declare an HTTPS origin and at least one group or role, with no empty names or duplicates within either list."
   }
 }
 

@@ -36,32 +36,45 @@ locals {
     for key, binding in var.browser_group_policy_bindings : key => replace(replace(replace(trimprefix(key, "https://"), ".", "-"), "/", "-"), "_", "-")
   }
 
-  browser_group_policy_binding_map = {
-    for item in local.browser_group_policy_bindings : "${item.host_key}:${item.group}" => item
+  browser_access_policy_expressions = {
+    for key, binding in var.browser_group_policy_bindings : key => <<-EOT
+      import json
+      from authentik.sources.oauth.models import UserOAuthSourceConnection
+      request.debug = True
+      requirements = json.loads(${jsonencode(jsonencode(binding))})
+      user = request.user
+      if not user.is_active:
+          return False
+      names = requirements["groups"] + requirements["roles"]
+      if any(": " in name for name in names):
+          email = user.attributes.get("osinfra_google_email", "")
+          if (
+              not isinstance(email, str)
+              or not email
+              or email != user.email
+              or not UserOAuthSourceConnection.objects.filter(user=user, source__slug="google").exists()
+          ):
+              return False
+      memberships = set(user.all_groups().values_list("name", flat=True))
+      return all(
+          not required or any(name in memberships for name in required)
+          for required in (requirements["groups"], requirements["roles"])
+      )
+    EOT
   }
 
-  browser_group_policy_bindings = flatten([
-    for host_key, binding in var.browser_group_policy_bindings : [
-      for group in binding.groups : {
-        host_key = host_key
-        group    = group
-        host     = binding.host
-      }
-    ]
-  ])
+  browser_access_policy_names = {
+    for key, name in local.browser_application_names : key => "${name} - browser access"
+  }
 
   browser_groups = {
-    for group in distinct([for item in local.browser_group_policy_bindings : item.group]) : group => {
+    for group in distinct(flatten([
+      for binding in values(var.browser_group_policy_bindings) : concat(binding.groups, binding.roles)
+      ])) : group => {
       group = group
     }
     if group != local.all_group_name && !contains(keys(local.application_group_names), group)
   }
-
-  browser_policy_group_ids = merge(
-    { (local.all_group_name) = authentik_group.all.id },
-    { for name, group in authentik_group.browser : name => group.id },
-    { for key, group in authentik_group.application : group.name => group.id },
-  )
 
   browser_proxy_property_mapping_ids = concat(
     local.proxy_default_property_mapping_ids,

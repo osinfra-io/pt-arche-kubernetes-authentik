@@ -12,8 +12,8 @@ output "browser_group_policy_bindings" {
 }
 
 output "browser_policy_bindings" {
-  description = "The per-group Authentik policy bindings created for browser routes, keyed by \"<host>:<group>\""
-  value       = authentik_policy_binding.browser_group
+  description = "The combined Authentik expression policy bindings keyed by browser host identity"
+  value       = authentik_policy_binding.browser_access
 }
 
 output "default_authentication_identification_stage_name" {
