@@ -10,6 +10,7 @@ resource "authentik_application" "browser" {
 
   for_each = var.browser_group_policy_bindings
 
+  meta_hide          = each.value.hidden
   meta_icon          = each.value.icon
   meta_launch_url    = each.value.launch_url
   name               = local.browser_application_names[each.key]
@@ -160,7 +161,7 @@ resource "authentik_policy_binding" "browser_access" {
 
   failure_result = false
   order          = 0
-  policy         = authentik_policy_expression.browser_access[each.key].id
+  policy         = authentik_policy_expression.browser_access[local.browser_access_policy_names[each.key]].id
   target         = authentik_application.browser[each.key].uuid
 }
 
@@ -179,10 +180,10 @@ resource "authentik_policy_binding" "google_authentication_sso" {
 # https://registry.terraform.io/providers/goauthentik/authentik/latest/docs/resources/policy_expression
 
 resource "authentik_policy_expression" "browser_access" {
-  for_each = var.browser_group_policy_bindings
+  for_each = local.browser_access_policies
 
   expression = local.browser_access_policy_expressions[each.key]
-  name       = local.browser_access_policy_names[each.key]
+  name       = each.key
 }
 
 resource "authentik_policy_expression" "google_authentication_sso" {
@@ -191,7 +192,7 @@ resource "authentik_policy_expression" "google_authentication_sso" {
   }
 
   expression = "return ak_is_sso_flow"
-  name       = "Google Source Authentication - Require SSO"
+  name       = "google-source-authentication-require-sso"
 }
 
 # Authentik Property Mapping Provider Scope
@@ -203,7 +204,7 @@ resource "authentik_property_mapping_provider_scope" "google_proxy" {
   }
 
   expression = local.google_proxy_mapping_expression
-  name       = "Gateway - verified Google proxy identity"
+  name       = "gateway-verified-google-proxy-identity"
   scope_name = "ak_proxy"
 }
 
@@ -211,7 +212,7 @@ resource "authentik_property_mapping_provider_scope" "groups" {
   expression = <<-EOT
     return {"groups": [group.name for group in request.user.ak_groups.all()]}
   EOT
-  name       = "Gateway - groups claim"
+  name       = "gateway-groups-claim"
   scope_name = "groups"
 }
 
@@ -219,7 +220,7 @@ resource "authentik_property_mapping_provider_scope" "roles" {
   expression = <<-EOT
     return {"roles": [group.name for group in request.user.ak_groups.all()]}
   EOT
-  name       = "Gateway - roles claim"
+  name       = "gateway-roles-claim"
   scope_name = "roles"
 }
 
@@ -232,7 +233,7 @@ resource "authentik_property_mapping_source_oauth" "google_application_groups" {
   }
 
   expression = local.google_group_mapping_expression
-  name       = "Google - Logos application groups"
+  name       = "google-source-logos-application-groups"
 }
 
 resource "authentik_property_mapping_source_oauth" "google_username" {
@@ -241,7 +242,7 @@ resource "authentik_property_mapping_source_oauth" "google_username" {
   }
 
   expression = local.google_identity_mapping_expression
-  name       = "Google - email as username"
+  name       = "google-source-email-as-username"
 }
 
 # Authentik OAuth2 Provider
@@ -380,7 +381,7 @@ resource "authentik_stage_user_login" "google_enrollment" {
     enabled = local.google_oauth_enabled
   }
 
-  name = "Google Source Enrollment - User Login"
+  name = "google-source-enrollment-user-login"
 }
 
 # Authentik Stage User Write
@@ -391,7 +392,7 @@ resource "authentik_stage_user_write" "google_authentication" {
     enabled = local.google_oauth_enabled
   }
 
-  name               = "Google Source Authentication - User Write"
+  name               = "google-source-authentication-user-write"
   user_creation_mode = "never_create"
 }
 
@@ -402,6 +403,6 @@ resource "authentik_stage_user_write" "google_enrollment" {
 
   create_users_as_inactive = false
   create_users_group       = authentik_group.all.id
-  name                     = "Google Source Enrollment - User Write"
+  name                     = "google-source-enrollment-user-write"
   user_creation_mode       = "create_when_required"
 }
