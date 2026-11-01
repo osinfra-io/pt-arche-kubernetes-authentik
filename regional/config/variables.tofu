@@ -167,16 +167,6 @@ variable "default_authentication_stage_settings" {
   }
 }
 
-variable "external_host" {
-  description = "The public URL of the protected gateway, used as the proxy provider external host"
-  type        = string
-
-  validation {
-    condition     = startswith(var.external_host, "https://")
-    error_message = "The external_host must be a public HTTPS URL (starting with https://)."
-  }
-}
-
 variable "gateway_oidc_enabled" {
   default     = true
   description = "Create the gateway OIDC application and provider independently of browser forward-auth applications."

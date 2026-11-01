@@ -259,7 +259,7 @@ resource "authentik_provider_oauth2" "gateway" {
   client_type           = "confidential"
   invalidation_flow     = data.authentik_flow.invalidation.id
   issuer_mode           = "per_provider"
-  name                  = var.application_name
+  name                  = var.application_slug
 
   property_mappings = [
     data.authentik_property_mapping_provider_scope.openid.id,
@@ -285,7 +285,7 @@ resource "authentik_provider_oauth2" "openbao" {
   grant_types           = ["authorization_code"]
   invalidation_flow     = data.authentik_flow.invalidation.id
   issuer_mode           = "per_provider"
-  name                  = "OpenBao"
+  name                  = "openbao"
 
   property_mappings = [
     data.authentik_property_mapping_provider_scope.openid.id,
@@ -312,15 +312,6 @@ resource "authentik_provider_proxy" "browser" {
   mode                  = "forward_single"
   name                  = local.browser_provider_names[each.key]
   property_mappings     = local.browser_proxy_property_mapping_ids
-}
-
-resource "authentik_provider_proxy" "gateway" {
-  authorization_flow = data.authentik_flow.authorization.id
-  external_host      = var.external_host
-  invalidation_flow  = data.authentik_flow.invalidation.id
-  mode               = "forward_single"
-  name               = local.forward_auth_provider_name
-  property_mappings  = local.proxy_default_property_mapping_ids
 }
 
 # Authentik Google OAuth Source
