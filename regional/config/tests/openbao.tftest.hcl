@@ -64,7 +64,6 @@ run "openbao_oidc_provider" {
 
   variables {
     authentik_url                       = "https://authentik.example.com"
-    external_host                       = "https://gateway.example.com"
     google_oauth_client_id              = ""
     google_oauth_client_secret          = ""
     manage_default_authentication_stage = false

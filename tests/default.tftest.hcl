@@ -111,7 +111,6 @@ run "proxy_defaults_converge" {
     google_oauth_client_id     = ""
     google_oauth_client_secret = ""
     authentik_url              = "https://authentik.example.com"
-    external_host              = "https://gateway.example.com"
     namespace                  = "authentik"
     openbao_hostname           = "openbao.example.com"
     default_authentication_stage_settings = {
@@ -149,7 +148,6 @@ run "proxy_defaults_converge" {
 
   assert {
     condition = (length(local.proxy_default_property_mapping_ids) == 5 &&
-      toset(authentik_provider_proxy.gateway.property_mappings) == toset(local.proxy_default_property_mapping_ids) &&
       toset(authentik_provider_proxy.browser["https://gateway.example.com"].property_mappings) == toset(local.proxy_default_property_mapping_ids) &&
     authentik_provider_proxy.browser["https://gateway.example.com"].access_token_validity == "minutes=10")
     error_message = "Browser forward-auth must retain all default mappings and bound cached claims to ten minutes."
@@ -168,7 +166,7 @@ run "proxy_defaults_converge" {
       authentik_policy_binding.browser_access["https://b.team.example.com"].policy == authentik_policy_expression.browser_access["team-browser-access"].id &&
       authentik_application.browser["https://gateway.example.com"].policy_engine_mode == "all" &&
       !authentik_application.browser["https://a.team.example.com"].meta_hide &&
-      authentik_provider_proxy.browser["https://a.team.example.com"].name == "a.team.example.com" &&
+      authentik_provider_proxy.browser["https://a.team.example.com"].name == "a-team-example-com" &&
       authentik_application.browser["https://b.team.example.com"].meta_hide &&
       authentik_policy_expression.browser_access["gateway-example-com-browser-access"].name == "gateway-example-com-browser-access" &&
       !authentik_policy_binding.browser_access["https://gateway.example.com"].failure_result &&
@@ -203,7 +201,6 @@ run "google_identity_without_application_groups" {
       user_fields               = ["email", "username"]
       webauthn_stage            = null
     }
-    external_host                       = "https://gateway.example.com"
     google_internal_domains             = ["osinfra.io"]
     google_oauth_client_id              = "test-client"
     google_oauth_client_secret          = "test-secret"
@@ -262,7 +259,6 @@ run "google_identity_allowlist_removed_without_application_groups" {
       user_fields               = ["email", "username"]
       webauthn_stage            = null
     }
-    external_host                       = "https://gateway.example.com"
     google_internal_domains             = []
     google_oauth_client_id              = "test-client"
     google_oauth_client_secret          = "test-secret"

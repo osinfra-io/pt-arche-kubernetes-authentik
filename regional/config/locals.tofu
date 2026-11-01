@@ -33,9 +33,7 @@ locals {
   }
 
   # Provider names must be unique, while display names such as "Istio" repeat across hosts.
-  browser_provider_names = {
-    for key, binding in var.browser_group_policy_bindings : key => trimprefix(binding.host, "https://")
-  }
+  browser_provider_names = local.browser_application_slugs
 
   browser_application_slugs = {
     for key, binding in var.browser_group_policy_bindings : key => replace(replace(replace(trimprefix(key, "https://"), ".", "-"), "/", "-"), "_", "-")
@@ -116,8 +114,6 @@ locals {
   # The built-in embedded outpost that runs inside the authentik-server pods. Assigning the proxy
   # provider to it makes each regional server serve forward-auth locally for Istio ext_authz.
   embedded_outpost_name = "authentik Embedded Outpost"
-
-  forward_auth_provider_name = "${var.application_name} forward-auth"
 
   google_authentication_flow_id = local.google_oauth_enabled ? authentik_flow.google_authentication.uuid : data.authentik_flow.default_source_authentication.id
 
@@ -226,10 +222,7 @@ locals {
     authentik_host = local.outpost_authentik_url
   })
 
-  outpost_provider_ids = concat(
-    [authentik_provider_proxy.gateway.id],
-    [for provider in authentik_provider_proxy.browser : provider.id],
-  )
+  outpost_provider_ids = [for provider in authentik_provider_proxy.browser : provider.id]
 
   # The embedded outpost is served by the authentik-server Service, which Istio ext_authz
   # forward-auth targets on the HTTP service port at /outpost.goauthentik.io/auth/envoy.
