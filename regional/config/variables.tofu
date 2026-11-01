@@ -119,11 +119,11 @@ variable "browser_group_policy_bindings" {
     condition = alltrue([
       for a in values(var.browser_group_policy_bindings) : alltrue([
         for b in values(var.browser_group_policy_bindings) :
-        a.policy_name == null || a.policy_name != b.policy_name ||
+        coalesce(a.policy_name, "${lower(replace(replace(trimprefix(a.host, "https://"), ".", "-"), "_", "-"))}-browser-access") != coalesce(b.policy_name, "${lower(replace(replace(trimprefix(b.host, "https://"), ".", "-"), "_", "-"))}-browser-access") ||
         (toset(a.groups) == toset(b.groups) && toset(a.roles) == toset(b.roles))
       ])
     ])
-    error_message = "Browser bindings that share a policy_name must declare identical groups and roles."
+    error_message = "Browser bindings that resolve to the same policy name, explicit or generated, must declare identical groups and roles."
   }
 }
 

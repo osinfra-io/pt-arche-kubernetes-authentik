@@ -310,7 +310,7 @@ resource "authentik_provider_proxy" "browser" {
   external_host         = each.value.host
   invalidation_flow     = data.authentik_flow.invalidation.id
   mode                  = "forward_single"
-  name                  = local.browser_application_names[each.key]
+  name                  = local.browser_provider_names[each.key]
   property_mappings     = local.browser_proxy_property_mapping_ids
 }
 

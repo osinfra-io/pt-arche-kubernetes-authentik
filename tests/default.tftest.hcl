@@ -168,6 +168,7 @@ run "proxy_defaults_converge" {
       authentik_policy_binding.browser_access["https://b.team.example.com"].policy == authentik_policy_expression.browser_access["team-browser-access"].id &&
       authentik_application.browser["https://gateway.example.com"].policy_engine_mode == "all" &&
       !authentik_application.browser["https://a.team.example.com"].meta_hide &&
+      authentik_provider_proxy.browser["https://a.team.example.com"].name == "a.team.example.com" &&
       authentik_application.browser["https://b.team.example.com"].meta_hide &&
       authentik_policy_expression.browser_access["gateway-example-com-browser-access"].name == "gateway-example-com-browser-access" &&
       !authentik_policy_binding.browser_access["https://gateway.example.com"].failure_result &&

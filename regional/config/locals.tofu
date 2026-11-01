@@ -32,6 +32,11 @@ locals {
     for key, binding in var.browser_group_policy_bindings : key => coalesce(binding.name, trimprefix(binding.host, "https://"))
   }
 
+  # Provider names must be unique, while display names such as "Istio" repeat across hosts.
+  browser_provider_names = {
+    for key, binding in var.browser_group_policy_bindings : key => trimprefix(binding.host, "https://")
+  }
+
   browser_application_slugs = {
     for key, binding in var.browser_group_policy_bindings : key => replace(replace(replace(trimprefix(key, "https://"), ".", "-"), "/", "-"), "_", "-")
   }
