@@ -32,16 +32,21 @@ locals {
     for key, binding in var.browser_group_policy_bindings : key => coalesce(binding.name, trimprefix(binding.host, "https://"))
   }
 
+  # Provider names must be unique, while display names such as "Istio" repeat across hosts.
+  browser_provider_names = {
+    for key, binding in var.browser_group_policy_bindings : key => trimprefix(binding.host, "https://")
+  }
+
   browser_application_slugs = {
     for key, binding in var.browser_group_policy_bindings : key => replace(replace(replace(trimprefix(key, "https://"), ".", "-"), "/", "-"), "_", "-")
   }
 
   browser_access_policy_expressions = {
-    for key, binding in var.browser_group_policy_bindings : key => <<-EOT
+    for name, binding in local.browser_access_policies : name => <<-EOT
       import json
       from authentik.sources.oauth.models import UserOAuthSourceConnection
       request.debug = True
-      requirements = json.loads(${jsonencode(jsonencode(binding))})
+      requirements = json.loads(${jsonencode(jsonencode({ groups = binding.groups, roles = binding.roles }))})
       user = request.user
       if not user.is_active:
           return False
@@ -63,8 +68,20 @@ locals {
     EOT
   }
 
+  # Bindings that share a policy name share one policy; validation requires identical requirements.
+  browser_access_policies = {
+    for name, keys in local.browser_access_policy_keys : name => var.browser_group_policy_bindings[keys[0]]
+  }
+
+  browser_access_policy_keys = {
+    for key, name in local.browser_access_policy_names : name => key...
+  }
+
   browser_access_policy_names = {
-    for key, name in local.browser_application_names : key => "${name} - browser access"
+    for key, binding in var.browser_group_policy_bindings : key => coalesce(
+      binding.policy_name,
+      "${lower(replace(replace(trimprefix(binding.host, "https://"), ".", "-"), "_", "-"))}-browser-access"
+    )
   }
 
   browser_groups = {

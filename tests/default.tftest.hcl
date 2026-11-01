@@ -133,6 +133,17 @@ run "proxy_defaults_converge" {
         groups = ["all"]
         host   = "https://gateway.example.com"
       }
+      "https://a.team.example.com" = {
+        groups      = ["team: Admins"]
+        host        = "https://a.team.example.com"
+        policy_name = "team-browser-access"
+      }
+      "https://b.team.example.com" = {
+        groups      = ["team: Admins"]
+        hidden      = true
+        host        = "https://b.team.example.com"
+        policy_name = "team-browser-access"
+      }
     }
   }
 
@@ -151,10 +162,17 @@ run "proxy_defaults_converge" {
 
   assert {
     condition = (
-      length(authentik_policy_binding.browser_access) == 1 &&
+      length(authentik_policy_binding.browser_access) == 3 &&
+      length(authentik_policy_expression.browser_access) == 2 &&
+      authentik_policy_binding.browser_access["https://a.team.example.com"].policy == authentik_policy_expression.browser_access["team-browser-access"].id &&
+      authentik_policy_binding.browser_access["https://b.team.example.com"].policy == authentik_policy_expression.browser_access["team-browser-access"].id &&
       authentik_application.browser["https://gateway.example.com"].policy_engine_mode == "all" &&
+      !authentik_application.browser["https://a.team.example.com"].meta_hide &&
+      authentik_provider_proxy.browser["https://a.team.example.com"].name == "a.team.example.com" &&
+      authentik_application.browser["https://b.team.example.com"].meta_hide &&
+      authentik_policy_expression.browser_access["gateway-example-com-browser-access"].name == "gateway-example-com-browser-access" &&
       !authentik_policy_binding.browser_access["https://gateway.example.com"].failure_result &&
-      authentik_policy_binding.browser_access["https://gateway.example.com"].policy == authentik_policy_expression.browser_access["https://gateway.example.com"].id &&
+      authentik_policy_binding.browser_access["https://gateway.example.com"].policy == authentik_policy_expression.browser_access["gateway-example-com-browser-access"].id &&
       authentik_policy_binding.browser_access["https://gateway.example.com"].target == authentik_application.browser["https://gateway.example.com"].uuid
     )
     error_message = "Each browser application must enforce its combined expression policy and fail closed on evaluation errors."
@@ -212,6 +230,7 @@ run "google_identity_without_application_groups" {
       authentik_property_mapping_source_oauth.google_username.expression == local.google_identity_mapping_expression &&
       authentik_policy_binding.google_authentication_sso.target == authentik_flow.google_authentication.uuid &&
       authentik_policy_binding.google_authentication_sso.policy == authentik_policy_expression.google_authentication_sso.id &&
+      authentik_policy_expression.google_authentication_sso.name == "google-source-authentication-require-sso" &&
       !authentik_policy_binding.google_authentication_sso.failure_result &&
       authentik_policy_expression.google_authentication_sso.expression == "return ak_is_sso_flow"
     )

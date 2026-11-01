@@ -44,7 +44,8 @@ class BrowserAccessPolicyTest(unittest.TestCase):
             root = Path(directory)
             (root / "main.tofu").write_text(
                 'variable "browser_group_policy_bindings" { type = any }\n'
-                "locals {\n" + block.group(0) + "\n}\n"
+                "locals {\n  browser_access_policies = var.browser_group_policy_bindings\n"
+                + block.group(0) + "\n}\n"
             )
             result = subprocess.run(
                 ["tofu", "console", "-var=browser_group_policy_bindings=" + json.dumps(bindings)],

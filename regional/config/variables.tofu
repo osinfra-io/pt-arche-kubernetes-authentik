@@ -84,12 +84,14 @@ variable "browser_group_policy_bindings" {
   default     = {}
   description = "Per-host browser authorization. Groups and roles each use OR, with AND between the lists; roles are Authentik group names. Team-qualified requirements additionally require an active, Google-linked verified identity."
   type = map(object({
-    groups     = optional(list(string), [])
-    host       = string
-    icon       = optional(string)
-    launch_url = optional(string)
-    name       = optional(string)
-    roles      = optional(list(string), [])
+    groups      = optional(list(string), [])
+    hidden      = optional(bool, false)
+    host        = string
+    icon        = optional(string)
+    launch_url  = optional(string)
+    name        = optional(string)
+    policy_name = optional(string)
+    roles       = optional(list(string), [])
   }))
 
   validation {
@@ -103,6 +105,25 @@ variable "browser_group_policy_bindings" {
       ])
     ])
     error_message = "Each browser binding must declare an HTTPS origin and at least one group or role, with no empty names or duplicates within either list."
+  }
+
+  validation {
+    condition = alltrue([
+      for binding in values(var.browser_group_policy_bindings) :
+      binding.policy_name == null || can(regex("^[a-z0-9]+(-[a-z0-9]+)*$", binding.policy_name))
+    ])
+    error_message = "A browser binding policy_name must be lowercase kebab-case."
+  }
+
+  validation {
+    condition = alltrue([
+      for a in values(var.browser_group_policy_bindings) : alltrue([
+        for b in values(var.browser_group_policy_bindings) :
+        coalesce(a.policy_name, "${lower(replace(replace(trimprefix(a.host, "https://"), ".", "-"), "_", "-"))}-browser-access") != coalesce(b.policy_name, "${lower(replace(replace(trimprefix(b.host, "https://"), ".", "-"), "_", "-"))}-browser-access") ||
+        (toset(a.groups) == toset(b.groups) && toset(a.roles) == toset(b.roles))
+      ])
+    ])
+    error_message = "Browser bindings that resolve to the same policy name, explicit or generated, must declare identical groups and roles."
   }
 }
 
