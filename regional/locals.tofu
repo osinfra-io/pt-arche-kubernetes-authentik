@@ -11,6 +11,13 @@
 # https://cloud.google.com/sql/docs/postgres/connect-auth-proxy
 
 locals {
+  authentik_log_config = jsonencode([
+    {
+      service = "authentik"
+      source  = "authentik"
+    }
+  ])
+
   cloud_sql_proxy_container = {
     name  = "cloud-sql-proxy"
     image = var.cloud_sql_proxy_image
@@ -28,6 +35,19 @@ locals {
     securityContext = {
       runAsNonRoot = true
     }
+  }
+
+  cloud_sql_proxy_log_annotations = var.cloud_sql_connection_name == null ? {} : {
+    "ad.datadoghq.com/cloud-sql-proxy.logs" = jsonencode([
+      {
+        service = "cloud-sql-proxy"
+        source  = "cloud-sql-proxy"
+      }
+    ])
+  }
+
+  cloud_sql_proxy_pod_labels = var.cloud_sql_connection_name == null ? {} : {
+    "tags.datadoghq.com/cloud-sql-proxy.service" = "cloud-sql-proxy"
   }
 
   extra_containers = var.cloud_sql_connection_name == null ? [] : [local.cloud_sql_proxy_container]
@@ -55,11 +75,17 @@ locals {
       # When the namespace is mesh-injected under STRICT mTLS, hold the server and worker containers
       # until the Istio sidecar is ready so startup database connectivity is not attempted before the
       # proxy can carry it. https://istio.io/latest/docs/reference/config/istio.mesh.v1alpha1/#ProxyConfig
-      podAnnotations = {
+      podAnnotations = merge({
         "proxy.istio.io/config" = jsonencode({
           holdApplicationUntilProxyStarts = true
         })
-      }
+      }, local.cloud_sql_proxy_log_annotations)
+
+      podLabels = merge({
+        "tags.datadoghq.com/env"     = module.core_helpers.environment
+        "tags.datadoghq.com/service" = "authentik"
+        "tags.datadoghq.com/version" = var.authentik_version
+      }, local.cloud_sql_proxy_pod_labels)
     }
 
     postgresql = {
@@ -68,6 +94,10 @@ locals {
 
     server = {
       extraContainers = local.extra_containers
+
+      podAnnotations = {
+        "ad.datadoghq.com/server.logs" = local.authentik_log_config
+      }
 
       replicas = var.server_replicas
 
@@ -82,6 +112,10 @@ locals {
 
     worker = {
       extraContainers = local.extra_containers
+
+      podAnnotations = {
+        "ad.datadoghq.com/worker.logs" = local.authentik_log_config
+      }
 
       replicas = var.worker_replicas
 

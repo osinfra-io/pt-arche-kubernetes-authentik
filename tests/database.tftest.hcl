@@ -10,6 +10,16 @@ run "cloud_sql_defaults" {
     source = "./regional"
   }
 
+  override_module {
+    target = module.core_helpers
+    outputs = {
+      env         = "prod"
+      environment = "production"
+      region      = "us-east1"
+      zone        = "b"
+    }
+  }
+
   variables {
     cloud_sql_connection_name    = "test-project:us-east1:authentik"
     existing_secret              = "authentik"
@@ -34,6 +44,32 @@ run "cloud_sql_defaults" {
       contains(yamldecode(helm_release.authentik.values[0])[component].extraContainers[0].args, "--structured-logs")
     ])
     error_message = "Server and worker Cloud SQL proxies must log only errors in structured format."
+  }
+
+  assert {
+    condition = alltrue([
+      for component in ["server", "worker"] :
+      jsondecode(yamldecode(helm_release.authentik.values[0])[component].podAnnotations["ad.datadoghq.com/${component}.logs"]) == [
+        {
+          service = "authentik"
+          source  = "authentik"
+        }
+      ]
+    ])
+    error_message = "authentik server and worker logs must use the authentik service/source without retagging the Cloud SQL sidecars."
+  }
+
+  assert {
+    condition = (
+      yamldecode(helm_release.authentik.values[0]).global.podLabels == {
+        "tags.datadoghq.com/cloud-sql-proxy.service" = "cloud-sql-proxy"
+        "tags.datadoghq.com/env"                     = "production"
+        "tags.datadoghq.com/service"                 = "authentik"
+        "tags.datadoghq.com/version"                 = var.authentik_version
+      } &&
+      jsondecode(yamldecode(helm_release.authentik.values[0]).global.podAnnotations["ad.datadoghq.com/cloud-sql-proxy.logs"])[0].service == "cloud-sql-proxy"
+    )
+    error_message = "authentik must use full unified service tags while the SQL sidecars retain their own log service."
   }
 }
 
