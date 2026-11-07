@@ -37,6 +37,19 @@ locals {
     }
   }
 
+  cloud_sql_proxy_log_annotations = var.cloud_sql_connection_name == null ? {} : {
+    "ad.datadoghq.com/cloud-sql-proxy.logs" = jsonencode([
+      {
+        service = "cloud-sql-proxy"
+        source  = "cloud-sql-proxy"
+      }
+    ])
+  }
+
+  cloud_sql_proxy_pod_labels = var.cloud_sql_connection_name == null ? {} : {
+    "tags.datadoghq.com/cloud-sql-proxy.service" = "cloud-sql-proxy"
+  }
+
   extra_containers = var.cloud_sql_connection_name == null ? [] : [local.cloud_sql_proxy_container]
 
   helm_values = yamlencode({
@@ -62,11 +75,17 @@ locals {
       # When the namespace is mesh-injected under STRICT mTLS, hold the server and worker containers
       # until the Istio sidecar is ready so startup database connectivity is not attempted before the
       # proxy can carry it. https://istio.io/latest/docs/reference/config/istio.mesh.v1alpha1/#ProxyConfig
-      podAnnotations = {
+      podAnnotations = merge({
         "proxy.istio.io/config" = jsonencode({
           holdApplicationUntilProxyStarts = true
         })
-      }
+      }, local.cloud_sql_proxy_log_annotations)
+
+      podLabels = merge({
+        "tags.datadoghq.com/env"     = module.core_helpers.environment
+        "tags.datadoghq.com/service" = "authentik"
+        "tags.datadoghq.com/version" = var.authentik_version
+      }, local.cloud_sql_proxy_pod_labels)
     }
 
     postgresql = {
