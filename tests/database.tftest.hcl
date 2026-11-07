@@ -26,6 +26,15 @@ run "cloud_sql_defaults" {
     condition     = length(yamldecode(helm_release.authentik.values[0]).server.extraContainers) == 1
     error_message = "Existing callers must retain their Cloud SQL proxy."
   }
+
+  assert {
+    condition = alltrue([
+      for component in ["server", "worker"] :
+      contains(yamldecode(helm_release.authentik.values[0])[component].extraContainers[0].args, "--quiet") &&
+      contains(yamldecode(helm_release.authentik.values[0])[component].extraContainers[0].args, "--structured-logs")
+    ])
+    error_message = "Server and worker Cloud SQL proxies must log only errors in structured format."
+  }
 }
 
 run "direct_postgresql" {
