@@ -17,6 +17,7 @@ locals {
 
     args = [
       "--private-ip",
+      "--quiet",
       "--structured-logs",
       "--port=${var.external_database_port}",
       var.cloud_sql_connection_name,
