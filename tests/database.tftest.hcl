@@ -35,6 +35,19 @@ run "cloud_sql_defaults" {
     ])
     error_message = "Server and worker Cloud SQL proxies must log only errors in structured format."
   }
+
+  assert {
+    condition = alltrue([
+      for component in ["server", "worker"] :
+      jsondecode(yamldecode(helm_release.authentik.values[0])[component].podAnnotations["ad.datadoghq.com/${component}.logs"]) == [
+        {
+          service = "authentik"
+          source  = "authentik"
+        }
+      ]
+    ])
+    error_message = "authentik server and worker logs must use the authentik service/source without retagging the Cloud SQL sidecars."
+  }
 }
 
 run "direct_postgresql" {

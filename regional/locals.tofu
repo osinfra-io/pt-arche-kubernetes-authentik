@@ -11,6 +11,13 @@
 # https://cloud.google.com/sql/docs/postgres/connect-auth-proxy
 
 locals {
+  authentik_log_config = jsonencode([
+    {
+      service = "authentik"
+      source  = "authentik"
+    }
+  ])
+
   cloud_sql_proxy_container = {
     name  = "cloud-sql-proxy"
     image = var.cloud_sql_proxy_image
@@ -69,6 +76,10 @@ locals {
     server = {
       extraContainers = local.extra_containers
 
+      podAnnotations = {
+        "ad.datadoghq.com/server.logs" = local.authentik_log_config
+      }
+
       replicas = var.server_replicas
 
       resources = local.resources["server"]
@@ -82,6 +93,10 @@ locals {
 
     worker = {
       extraContainers = local.extra_containers
+
+      podAnnotations = {
+        "ad.datadoghq.com/worker.logs" = local.authentik_log_config
+      }
 
       replicas = var.worker_replicas
 
